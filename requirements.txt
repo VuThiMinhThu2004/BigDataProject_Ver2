@@ -1,0 +1,23 @@
+# Core Apache Airflow
+apache-airflow==2.7.0
+
+# Airflow Providers
+apache-airflow-providers-common-sql==1.7.1
+apache-airflow-providers-http==4.5.1
+apache-airflow-providers-postgres==5.6.0
+
+# Kafka & Streaming
+kafka-python==2.0.2
+
+# Database
+SQLAlchemy==1.4.49
+psycopg2-binary==2.9.9
+
+# Utilities
+requests==2.31.0
+python-dateutil==2.8.2
+pendulum==2.1.2 
+
+# Logging & Formatting
+rich==13.5.2
+PyYAML==6.0.1
