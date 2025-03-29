@@ -202,4 +202,4 @@ services:
 
 networks:
   confluent:
-    driver: bridge
+    external: true
