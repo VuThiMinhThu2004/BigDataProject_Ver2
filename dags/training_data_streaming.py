@@ -88,7 +88,7 @@ def get_data(minio_client: Minio, bucket_name='storage'):
         
     try:
         response = minio_client.get_object(bucket_name=bucket_name, object_name=target_filename)
-        dest_file = f"validated_data/year={year}/month={month}/day={day}/{hour}.parquet"
+        dest_file = f"training_data/year={year}/month={month}/day={day}/{hour}.parquet"
         return response, dest_file, last_processed_hour 
     except Exception as e:
         logging.error(f"Something went wrong when read object: {e}")

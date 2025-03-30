@@ -32,7 +32,7 @@ spark = SparkSession.builder \
 # Connect Kafka to Spark, then it allows to read messages from specific Kafka topics 
 kafkaDF = spark.readStream.format("kafka") \
     .option("kafka.bootstrap.servers", "broker:29092") \
-    .option("subscribe", "validated_data_streaming") \
+    .option("subscribe", "training_data_streaming") \
     .option('startingOffsets', 'earliest') \
     .load()
 
