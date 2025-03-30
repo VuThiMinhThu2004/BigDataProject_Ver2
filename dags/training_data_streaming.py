@@ -118,7 +118,7 @@ def stream_data():
     except Exception as e:
         logging.error(f"Something went wrong when trying to put data to bronze {e}")
         
-with DAG('data_streaming', 
+with DAG('training_data_streaming', 
          default_args=default_args,
          schedule_interval='@hourly',
          catchup=False) as dag:
