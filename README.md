@@ -11,7 +11,7 @@ password: minioadmin
 - Tại Minio, tạo key (access_key, secret_key), thay vào minio_config.py 
 
 - python load_to_storage.py
-- 
+ 
 Vào docker desktop personal, chờ cho webserver chạy xong.
 
 docker-compose up -d
