@@ -1,5 +1,5 @@
 - docker network create confluent
-- 
+
 docker-compose -f docker-compose-minio.yml up
 
 - Tại localhost:9001
