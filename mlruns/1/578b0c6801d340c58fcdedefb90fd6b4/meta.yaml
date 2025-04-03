@@ -1,0 +1,15 @@
+artifact_uri: ./mlruns/1/578b0c6801d340c58fcdedefb90fd6b4/artifacts
+end_time: 1743676599156
+entry_point_name: ''
+experiment_id: '1'
+lifecycle_stage: active
+run_id: 578b0c6801d340c58fcdedefb90fd6b4
+run_name: magnificent-wren-753
+run_uuid: 578b0c6801d340c58fcdedefb90fd6b4
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1743676599025
+status: 4
+tags: []
+user_id: root
