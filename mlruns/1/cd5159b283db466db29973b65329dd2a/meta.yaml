@@ -1,0 +1,15 @@
+artifact_uri: ./mlruns/1/cd5159b283db466db29973b65329dd2a/artifacts
+end_time: 1743676755523
+entry_point_name: ''
+experiment_id: '1'
+lifecycle_stage: active
+run_id: cd5159b283db466db29973b65329dd2a
+run_name: likeable-steed-48
+run_uuid: cd5159b283db466db29973b65329dd2a
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1743676752789
+status: 4
+tags: []
+user_id: root

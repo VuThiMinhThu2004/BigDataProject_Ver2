@@ -1,0 +1,15 @@
+artifact_uri: ./mlruns/1/fc71e2023f5d4117bc1bbbe236131606/artifacts
+end_time: 1743677218307
+entry_point_name: ''
+experiment_id: '1'
+lifecycle_stage: active
+run_id: fc71e2023f5d4117bc1bbbe236131606
+run_name: omniscient-toad-709
+run_uuid: fc71e2023f5d4117bc1bbbe236131606
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1743677215583
+status: 4
+tags: []
+user_id: root
