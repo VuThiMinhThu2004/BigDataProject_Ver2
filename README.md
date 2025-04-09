@@ -1,47 +1,33 @@
-- docker network create confluent
+Bước 1: docker-compose up -d
+-> Sau khi chạy sẽ báo cáo: webserver bị lỗi -> Sau đó scheduler bị lỗi luôn
 
-docker-compose -f docker-compose-minio.yml up
+Bước 2: Vào docker desktop -> Vào webserver, kiểm tra chạy xong chưa: Listening at: http://10.200.2.51:8080 (45)
 
-- Tại localhost:9001
-  
-username: minioadmin
+Bước 3: Sau khi thành công, tiếp tục chạy lại: docker-compose up -d (Để chạy scheduler)
 
-password: minioadmin
+Bước 4: Vào docker desktop -> Kiểm tra scheduler -> Nó phải chạy một thời gian, vì download packages các kiểu.
+Chạy thành công: Listening at: http://10.200.2.51:8793 (72)
 
-- Tại Minio, tạo key (access_key, secret_key), thay vào minio_config.py 
+Bước 5: Chạy thành công
+9021: control center của Kafka Confluent
+8080: Apache Airflow 
+MK: admin
+Password: admin
 
-- python load_to_storage.py
- 
-Vào docker desktop personal, chờ cho webserver chạy xong.
+Bước 6: Chạy lệnh khởi động Spark
+docker exec -it spark-master spark-submit  --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.0,org.postgresql:postgresql:42.7.4  /opt/spark_app/spark_stream.py
 
-docker-compose up -d
+-> Hoàn thành chu ETL Datastreaming -> Bây giờ mỗi lần mình ấn Trigger DAGs ở Apache Airflow -> Nó tự động xử lý.
 
-Chờ cho schduler chạy xong -> Hoàn tất setup Airflow
+Bước 7: Kiểm tra xem dữ liệu có được streaming vào PostgresSQL hay không:
+docker exec -it postgres psql -U airflow -d airflow
 
-- Xong scheduluer là xong tất cả
-  
-http://localhost:9001/ -> MinIIO 
+Hiển thị các hàng có trong CSDL:
+SELECT COUNT(*) FROM processed_data;
 
-http://localhost:9021/ -> Kafka
 
-http://localhost:8080/ -> Airflow, username = admin, pass = admin
+Chỉ làm đến Kafka thôi: https://www.youtube.com/watch?v=GqAcTrqKcrY&t=3107s
+đoạn sau setup PostgreSQL và Spark: https://medium.com/@dhirajmishra57/streaming-data-using-kafka-postgresql-spark-streaming-airflow-and-docker-33c43bfa609d
 
-- Setup Lambda ở MinIO
-  
-MinIO/Administrator/Events -> Add an Event destination, chọn Kafka
+tham khảo thêm cách setup Spark & Cassandra (để làm đối chứng): https://github.com/airscholar/e2e-data-engineering/blob/main/spark_stream.py
 
-Identifier: thedeptrai
-
-Brokers: broker:29092
-
-Topic: training_data_streaming
-
-- Save event destination -> Restart
-  
-Sử dụng Lambda cho Bucket:
-
-MinIO/Administrator/Buckets, chọn bronze, ấn vào Events -> Subscribe to Event, ARN (Cái vừa tạo), Select Event chỉ chọn Put - Object Uploaded
-
-- Vào Apache Airflow -> Chọn data_streaming -> Trigger DAG
-  
-minio_config.py

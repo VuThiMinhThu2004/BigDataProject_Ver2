@@ -8,7 +8,7 @@ import sys
 import os
 
 root_folder = (os.path.abspath(os.getcwd()))
-minio_config_folder = root_folder + "\\data_pipeline"
+minio_config_folder = root_folder + "\\datalake"
 
 sys.path.insert(0, minio_config_folder)
 
