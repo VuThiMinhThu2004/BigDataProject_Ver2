@@ -7,7 +7,10 @@ import logging, io
 import sys
 import os
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+root_folder = (os.path.abspath(os.getcwd()))
+minio_config_folder = root_folder + "\\data_pipeline"
+
+sys.path.insert(0, minio_config_folder)
 
 from minio_config import config
 
@@ -130,7 +133,6 @@ with DAG('training_data_streaming',
     )
     
     streaming_task
-
 
 
 
