@@ -1,3 +1,13 @@
+Bước 0: > docker network create confluent
+> docker-compose -f docker-compose-minio.yml up
+
+Tại localhost:9001
+username: minioadmin
+password: minioadmin
+Tại Minio, tạo key (access_key, secret_key), thay vào minio_config.py 
+
+Bước 0.1: python load_to_storage.py 
+
 Bước 1: docker-compose up -d
 -> Sau khi chạy sẽ báo cáo: webserver bị lỗi -> Sau đó scheduler bị lỗi luôn
 
@@ -13,6 +23,8 @@ Bước 5: Chạy thành công
 8080: Apache Airflow 
 MK: admin
 Password: admin
+
+----- Phần dới chưa ổn vì chưa hoàn thiện Spark ----
 
 Bước 6: Chạy lệnh khởi động Spark
 docker exec -it spark-master spark-submit  --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.0,org.postgresql:postgresql:42.7.4  /opt/spark_app/spark_stream.py
