@@ -27,7 +27,7 @@ Password: admin
 ----- Phần dới chưa ổn vì chưa hoàn thiện Spark ----
 
 Bước 6: Chạy lệnh khởi động Spark
-docker exec -it spark-master spark-submit  --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.0,org.postgresql:postgresql:42.7.4  /opt/spark_app/spark_stream.py
+docker exec -it spark-master spark-submit  --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.0,org.postgresql:postgresql:42.7.4  /opt/spark_app/training_data_stream.py
 
 -> Hoàn thành chu ETL Datastreaming -> Bây giờ mỗi lần mình ấn Trigger DAGs ở Apache Airflow -> Nó tự động xử lý.
 

@@ -109,7 +109,7 @@ services:
     image: apache/airflow:2.6.0-python3.9
     container_name: webserver
     command: webserver
-    entrypoint: ['/opt/airflow/script/entrypoint.sh']
+    entrypoint: ['/bin/bash', '-c', "pip install -r /opt/airflow/requirements.txt && airflow db init && airflow users create --username admin --firstname admin --lastname admin --role Admin --email admin@example.com --password admin && airflow db upgrade && exec airflow webserver"]
     depends_on:
       - postgres
     environment:
@@ -185,6 +185,7 @@ services:
       - confluent
     volumes:
       - ./spark_app:/opt/spark_app
+      - ./jars/postgresql-42.7.4.jar:/opt/spark/jars/postgresql-42.7.4.jar
      
   spark-worker:
     image: bitnami/spark:latest
