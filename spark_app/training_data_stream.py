@@ -34,7 +34,7 @@ from minio_config import config
 spark = SparkSession.builder \
     .appName("LocalDataProcessing") \
     .config("spark.streaming.stopGracefullyonShutdown", True)\
-    .config("spark.jars", "/opt/spark/jars/postgresql-42.7.5.jar") \
+    .config("spark.jars.packages", "org.postgresql:postgresql:42.7.4") \
     .config("spark.sql.shuffle.partitions", 4) \
     .master("spark://spark-master:7077")\
     .getOrCreate()
