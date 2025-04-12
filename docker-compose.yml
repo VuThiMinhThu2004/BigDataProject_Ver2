@@ -125,7 +125,7 @@ services:
       - ./dags:/opt/airflow/dags
       - ./script/entrypoint.sh:/opt/airflow/script/entrypoint.sh
       - ./requirements.txt:/opt/airflow/requirements.txt
-      - ./minio_config.py:/opt/airflow/minio_config.py
+      - ./datalake/minio_config.py:/opt/airflow/minio_config.py
     ports:
       - "8080:8080"
     healthcheck:
@@ -146,7 +146,7 @@ services:
       - ./dags:/opt/airflow/dags
       - ./script/entrypoint.sh:/opt/airflow/script/entrypoint.sh
       - ./requirements.txt:/opt/airflow/requirements.txt
-      - ./minio_config.py:/opt/airflow/minio_config.py
+      - ./datalake/minio_config.py:/opt/airflow/minio_config.py
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__WEBSERVER__RBAC=False
