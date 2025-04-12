@@ -7,10 +7,7 @@ import logging, io
 import sys
 import os
 
-# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
-sys.path.insert(0, minio_config_folder)
-
-# sys.path.append('/opt/spark_app')
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from minio_config import config
 #Import MinIO client
