@@ -184,6 +184,7 @@ services:
     networks:
       - confluent
     volumes:
+      - ./datalake/minio_config.py:/opt/spark_app/minio_config.py
       - ./spark_app:/opt/spark_app
     environment:
         - SPARK_MODE=master
@@ -195,17 +196,23 @@ services:
   spark-worker:
     image: bitnami/spark:latest
     container_name: spark-worker
-    command: 
-      bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    command: >
+      bash -c "pip install -r /opt/spark_app/spark_requirements.txt &&
+      bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077"
     depends_on:
       - spark-master
     volumes:
+      - ./datalake/minio_config.py:/opt/spark_app/minio_config.py
       - ./spark_app:/opt/spark_app
     environment:
       SPARK_MODE: worker
       SPARK_WORKER_CORES: 2
       SPARK_WORKER_MEMORY: 1g
       SPARK_MASTER_URL: spark://spark-master:7077
+      SPARK_RPC_AUTHENTICATION_ENABLED: no
+      SPARK_RPC_ENCRYPTION_ENABLED: no
+      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: no
+      SPARK_SSL_ENABLED: no
     networks:
       - confluent
   

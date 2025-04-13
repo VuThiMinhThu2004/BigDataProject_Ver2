@@ -1,0 +1,10 @@
+redis
+minio==7.2.0
+pyspark>=3.0.0
+sqlalchemy>=1.4.0
+pandas>=1.0.0
+loguru>=0.5.0
+pyarrow>=3.0.0
+parquet 
+urllib3>=1.25.0
+psycopg2-binary>=2.8.0
