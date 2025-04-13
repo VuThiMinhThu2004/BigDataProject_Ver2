@@ -185,11 +185,18 @@ services:
       - confluent
     volumes:
       - ./spark_app:/opt/spark_app
+    environment:
+        - SPARK_MODE=master
+        - SPARK_RPC_AUTHENTICATION_ENABLED=no
+        - SPARK_RPC_ENCRYPTION_ENABLED=no
+        - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+        - SPARK_SSL_ENABLED=no
      
   spark-worker:
     image: bitnami/spark:latest
     container_name: spark-worker
-    command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    command: 
+      bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
     depends_on:
       - spark-master
     volumes:
