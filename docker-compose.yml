@@ -201,7 +201,27 @@ services:
       SPARK_MASTER_URL: spark://spark-master:7077
     networks:
       - confluent
+  
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis
+    hostname: redis
+    ports:
+      - "6379:6379"
+    # volumes:
+    #   - redis_data:/data
+    networks:
+      - confluent
+    healthcheck:
+        test: ["CMD", "redis-cli", "ping"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
 
 networks:
   confluent:
     external: true
+
+# volumes:
+#   postgres_data: 
+#   redis_data:
