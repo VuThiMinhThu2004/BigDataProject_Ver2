@@ -44,18 +44,6 @@ def minio_client_initialization():
     
     return minio_client
 
-def get_next(last_processed_hour):
-    dt = datetime.strptime(last_processed_hour, '%Y-%m-%d_%H')
-    
-    next_dt = dt + timedelta(hours=1)
-    
-    year = f"{next_dt.year}"
-    month = f"{next_dt.month:02d}"
-    day = f"{next_dt.day:02d}"
-    hour = f"{next_dt.hour:02d}"
-    
-    return year, month, day, hour
-
 def get_data(minio_client: Minio, bucket_name='storage'):
     
     if not minio_client.bucket_exists(bucket_name):
@@ -63,18 +51,16 @@ def get_data(minio_client: Minio, bucket_name='storage'):
         return
 
     try:
-        last_processed_hour = Variable.get("last_processed_hour")
+        last_accessed_element = Variable.get("last_accessed_element")
     except:
-        last_processed_hour = "2019-11-27_23"
-        Variable.set("last_processed_hour", last_processed_hour)
+        last_accessed_element = 0
+        Variable.set("last_accessed_element", last_accessed_element)
     
-    logging.info(f"Last processed hour: {last_processed_hour}")
+    logging.info(f"Last accessed element: {last_accessed_element}")
     
-    year, month, day, hour = get_next(last_processed_hour)
+    curr_accessed_element = int(last_accessed_element) + 1
     
-    last_processed_hour = f"{year}-{month}-{day}_{hour}"
-    
-    target_filename = f"traing_data/data_{last_processed_hour}.parquet"
+    target_filename = f"testing_data/{curr_accessed_element}.json"
     
     try:
         objects = list(minio_client.list_objects(bucket_name=bucket_name, prefix=target_filename))
@@ -87,8 +73,8 @@ def get_data(minio_client: Minio, bucket_name='storage'):
         
     try:
         response = minio_client.get_object(bucket_name=bucket_name, object_name=target_filename)
-        dest_file = f"training_data/year={year}/month={month}/day={day}/{hour}.parquet"
-        return response, dest_file, last_processed_hour 
+        dest_file = f"testing_data/{curr_accessed_element}.json"
+        return response, dest_file, curr_accessed_element
     except Exception as e:
         logging.error(f"Something went wrong when read object: {e}")
         return
@@ -98,7 +84,7 @@ def stream_data():
     
     minio_client = minio_client_initialization()
     
-    response, dest_file, last_processed_hour = get_data(minio_client=minio_client)
+    response, dest_file, curr_accessed_hour = get_data(minio_client=minio_client)
     
     dest_bucket = "bronze"
     
@@ -113,13 +99,13 @@ def stream_data():
         content_type='application/octet-stream'
         )
         
-        Variable.set('last_processed_hour', last_processed_hour)
+        Variable.set('last_accessed_element', curr_accessed_hour)
     except Exception as e:
         logging.error(f"Something went wrong when trying to put data to bronze {e}")
         
-with DAG('training_data_streaming', 
+with DAG('testing_data_streaming', 
          default_args=default_args,
-         schedule_interval='@hourly',
+         schedule_interval=timedelta(minutes=1),
          catchup=False) as dag:
 
     # Streaming data to bronze storage
