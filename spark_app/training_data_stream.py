@@ -179,7 +179,7 @@ def write_to_postgres(processed_df, table_name):
     #     password="airflow"
     # )
 
-    postgres_url = "jdbc:postgresql://172.18.0.2:5432/airflow"
+    postgres_url = "jdbc:postgresql://postgres:5432/airflow"
     postgres_properties = {
         "user": "airflow",
         "password": "airflow",
@@ -193,6 +193,8 @@ def write_to_postgres(processed_df, table_name):
         mode="append",
         properties=postgres_properties
     )
+    print("Attempting to write data to PostgreSQL...")
+    processed_df.show(10)
     # # Chuyển Spark DataFrame sang Pandas DataFrame
     # pandas_df = processed_df.toPandas()
 
@@ -338,6 +340,7 @@ local_df = local_df.filter(
 )
 # Chuyển đổi event_time từ LongType sang TimestampType
 local_df = local_df.withColumn("event_time", F.from_unixtime(F.col("event_time") / 1000).cast("timestamp"))
+local_df.show(10)
 # Process the data
 processed_df = process_data(local_df)
 

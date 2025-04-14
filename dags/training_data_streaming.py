@@ -8,11 +8,15 @@ import sys
 import os
 
 # sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
+# sys.path.append('/opt/datalake')
+
+root_folder = (os.path.abspath(os.getcwd()))
+minio_config_folder = root_folder
+
 sys.path.insert(0, minio_config_folder)
 
-# sys.path.append('/opt/spark_app')
-
 from minio_config import config
+
 #Import MinIO client
 try:
     from minio import Minio
