@@ -51,7 +51,7 @@ def csv_to_individual_json(minio_client, bucket_name):
         logging.info("Starting to convert CSV rows to individual JSON files")
         
         # Đọc file CSV
-        df = pd.read_csv('/root/thu/BigDataProject/datalake/validated_streaming.csv')
+        df = pd.read_csv('validated_streaming.csv')
         
         # Chuyển event_time thành datetime sau đó thành chuỗi để tránh lỗi serialization
         df['event_time'] = pd.to_datetime(df['event_time'])

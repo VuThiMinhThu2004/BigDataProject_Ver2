@@ -109,6 +109,7 @@ Kết quả:
    ```
 
 2. Chạy Spark:
+   Chạy dữ liệu vào Redis:
    ```bash
    /opt/bitnami/spark/bin/spark-submit \
        --master spark://spark-master:7077 \
@@ -116,6 +117,22 @@ Kết quả:
        /opt/spark_app/testing_data_streaming.py
    ```
 
+   Chạy dữ liệu vào PostGre:
+   ```bash
+   docker exec -it spark-master spark-submit  --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.0,org.postgresql:postgresql:42.7.4  /opt/spark_app/training_data_stream.py
+   ```
+   
+   Cách vào postgres xem dữ liệu: 
+
+   ```bash
+      docker exec -it postgres psql -U airflow -d airflow
+   ```
+
+   Sau đó nhập các lệnh sql để truy vấn bảng processed_data:
+   ```bash
+   SELECT * FROM processed_data LIMIT 10;
+   SELECT COUNT(*) FROM processed_data;
+   ```
 3. Sau khi Spark đã cài xong các file cấu hình liên quan và thực hiện xử lý, để kiểm tra xem data có đi vào Redis như kỳ vọng hay không:
    ```bash
    docker exec -it redis redis-cli 
