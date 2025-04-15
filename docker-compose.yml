@@ -126,6 +126,7 @@ services:
       - ./script/entrypoint.sh:/opt/airflow/script/entrypoint.sh
       - ./requirements.txt:/opt/airflow/requirements.txt
       - ./datalake/minio_config.py:/opt/airflow/minio_config.py
+      - ./datahouse:/opt/airflow/dags/datahouse
     ports:
       - "8080:8080"
     healthcheck:
@@ -145,6 +146,7 @@ services:
     volumes:
       - ./dags:/opt/airflow/dags
       - ./script/entrypoint.sh:/opt/airflow/script/entrypoint.sh
+      - ./datahouse:/opt/airflow/dags/
       - ./requirements.txt:/opt/airflow/requirements.txt
       - ./datalake/minio_config.py:/opt/airflow/minio_config.py
     environment:
@@ -152,7 +154,7 @@ services:
       - AIRFLOW__WEBSERVER__RBAC=False
       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
       - AIRFLOW_WEBSERVER_SECRET_KEY=this_is_a_very_secured_key
-    command: bash -c "pip install -r ./requirements.txt && airflow db upgrade && airflow scheduler"
+    command: bash -c "pip install --timeout=500 -r ./requirements.txt && airflow db upgrade && airflow scheduler"
     networks:
       - confluent
     

@@ -119,8 +119,8 @@ def main():
             logging.info(f"Successfully created bucket: {bucket_name}")
         
         # Chuyển từng hàng của CSV thành file JSON riêng biệt
-        logging.info("Converting CSV rows to individual JSON files...")
-        csv_to_individual_json(minio_client=minio_client, bucket_name=bucket_name)
+        # logging.info("Converting CSV rows to individual JSON files...")
+        # csv_to_individual_json(minio_client=minio_client, bucket_name=bucket_name)
         
         # Chuyển CSV thành Parquet
         logging.info("Converting CSV to Parquet...")
