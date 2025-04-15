@@ -1,5 +1,20 @@
+# Dựa trên schema đã định nghĩa trong Spark, bảng processed_data chứa các cột sau:
+
+# event_timestamp: Thời gian xảy ra sự kiện.
+# user_id: ID người dùng.
+# product_id: ID sản phẩm.
+# user_session: ID phiên làm việc của người dùng.
+# price: Giá sản phẩm.
+# brand: Thương hiệu sản phẩm.
+# category_code_level1: Danh mục cấp 1.
+# category_code_level2: Danh mục cấp 2.
+# event_weekday: Ngày trong tuần (0-6).
+# activity_count: Số lượng hoạt động trong phiên.
+# is_purchased: Cờ đánh dấu nếu sự kiện là purchase.
+
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col, to_timestamp, dayofweek, when, split, count, from_unixtime
+
 from pyspark.sql.types import StructType, StructField, StringType, LongType, DoubleType, ArrayType
 from pyspark.sql import Window
 from loguru import logger
