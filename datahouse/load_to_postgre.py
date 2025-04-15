@@ -3,14 +3,16 @@ from typing import Any, Dict
 import pandas as pd
 from airflow.decorators import task
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from db_utils.dim_schemas import (
+from datahouse.db_utils.dim_schemas import (
     DimCategorySchema,
     DimDateSchema,
     DimProductSchema,
     DimUserSchema,
 )
-from db_utils.fact_schemas import FactEventSchema
-from utils.sql_utils import load_sql_template
+from datahouse.db_utils.fact_schemas import FactEventSchema
+from pathlib import Path
+
+import jinja2
 from loguru import logger
 from typing import Any
 
@@ -232,3 +234,20 @@ def load_dimensions_and_facts(transformed_data: Dict[str, Any]) -> Dict[str, Any
     except Exception as e:
         logger.error(f"Failed to load dimensional model: {str(e)}")
         raise Exception(f"Failed to load dimensional model: {str(e)}")
+    
+from pathlib import Path
+
+import jinja2
+
+
+def load_sql_template(filename: str) -> str:
+    """Load SQL template from file"""
+    sql_dir = Path(__file__).parent.parent.parent / "sql"
+    with open(sql_dir / filename, "r") as f:
+        return f.read()
+
+
+def render_sql_template(filename: str, **kwargs) -> str:
+    """Load and render SQL template with variables"""
+    template = jinja2.Template(load_sql_template(filename))
+    return template.render(**kwargs)

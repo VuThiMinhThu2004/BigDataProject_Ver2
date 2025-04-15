@@ -10,7 +10,7 @@ from datahouse.ingest_data import ingest_raw_data, check_minio_connection
 from datahouse.validate_data import validate_raw_data
 from datahouse.transform_data import transform_data
 from datahouse.load_to_postgre import load_dimensions_and_facts
-from datahouse.data_pipeline_config import DataPipelineConfig
+from datahouse.ingest_data import DataPipelineConfig
 
 from loguru import logger
 logger = logger.bind(name=__name__)
@@ -137,7 +137,7 @@ def debug_data(data: Dict[str, Any], layer: str):
     default_args=default_args,
     description="Data pipeline for processing events from MinIO to DWH",
     schedule="@hourly",
-    start_date=pendulum.datetime(2025, 15, 4, tz="UTC"),
+    start_date=pendulum.datetime(2025, 4, 15, tz="UTC"),
     catchup=False,
     tags=["data_lake", "data_warehouse"],
     max_active_runs=3,

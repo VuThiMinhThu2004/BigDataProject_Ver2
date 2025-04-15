@@ -146,7 +146,7 @@ services:
     volumes:
       - ./dags:/opt/airflow/dags
       - ./script/entrypoint.sh:/opt/airflow/script/entrypoint.sh
-      - ./datahouse:/opt/airflow/dags/
+      - ./datahouse:/opt/airflow/dags/datahouse
       - ./requirements.txt:/opt/airflow/requirements.txt
       - ./datalake/minio_config.py:/opt/airflow/minio_config.py
     environment:

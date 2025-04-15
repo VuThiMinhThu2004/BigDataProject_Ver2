@@ -1,7 +1,7 @@
 from typing import Any, Dict
 
 import pandas as pd
-from db_utils.monitoring import PipelineMonitoring
+from datahouse.db_utils.monitoring import PipelineMonitoring
 from loguru import logger
 
 from airflow.decorators import task
