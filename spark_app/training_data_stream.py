@@ -1,5 +1,5 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import from_json, col, udf, expr, split, when
+from pyspark.sql.functions import from_json, col, udf, expr, split, when, from_unixtime, to_timestamp, dayofweek, when, split, count
 from pyspark.sql.types import StructType, StructField, StringType, ArrayType, TimestampType, DoubleType, LongType, IntegerType
 from minio import Minio
 import urllib.parse
@@ -19,7 +19,7 @@ sys.path.append('/opt/spark_app')
 
 from minio_config import config
 
-# # Initialize Spark Session
+# Initialize Spark Session
 # spark = SparkSession.builder \
 #     .appName("KafkaExample") \
 #     .config("spark.streaming.stopGracefullyonShutdown", True)\
@@ -39,91 +39,91 @@ spark = SparkSession.builder \
     .master("spark://spark-master:7077")\
     .getOrCreate()
     
-# # Chưa dùng đến vì đang lấy parquet tĩnh để kiểm thử
-# # Config Spark to directly access MinIO
+# Chưa dùng đến vì đang lấy parquet tĩnh để kiểm thử
+# Config Spark to directly access MinIO
 # spark._jsc.hadoopConfiguration().set("fs.s3a.endpoint", "minio:9000")
 # spark._jsc.hadoopConfiguration().set("fs.s3a.access.key", config['access_key'])
 # spark._jsc.hadoopConfiguration().set("fs.s3a.secret.key", config['secret_key'])
 # spark._jsc.hadoopConfiguration().set("fs.s3a.path.style.access", "true")
 # spark._jsc.hadoopConfiguration().set("fs.s3a.connection.ssl.enabled", "false")
 
-class PostgreSQLOfflineWriter:
-    """Helper class to write batches of data to PostgreSQL offline store."""
+# class PostgreSQLOfflineWriter:
+#     """Helper class to write batches of data to PostgreSQL offline store."""
 
-    def __init__(
-        self,
-        host: str = None,
-        port: int = None,
-        database: str = None,
-        db_schema: str = None,
-        user: str = None,
-        password: str = None,
-        **kwargs,
-    ):
-        """Initialize PostgreSQL connection parameters."""
-        self.host = host or os.getenv("POSTGRES_HOST", "localhost")
-        self.port = port or int(os.getenv("POSTGRES_PORT", "5432"))
-        self.database = database or os.getenv("POSTGRES_DB", "feast")
-        self.db_schema = db_schema or os.getenv("POSTGRES_SCHEMA", "public")
-        self.user = user or os.getenv("POSTGRES_USER", "feast")
-        self.password = password or os.getenv("POSTGRES_PASSWORD", "feast")
+#     def __init__(
+#         self,
+#         host: str = None,
+#         port: int = None,
+#         database: str = None,
+#         db_schema: str = None,
+#         user: str = None,
+#         password: str = None,
+#         **kwargs,
+#     ):
+#         """Initialize PostgreSQL connection parameters."""
+#         self.host = host or os.getenv("POSTGRES_HOST", "localhost")
+#         self.port = port or int(os.getenv("POSTGRES_PORT", "5432"))
+#         self.database = database or os.getenv("POSTGRES_DB", "feast")
+#         self.db_schema = db_schema or os.getenv("POSTGRES_SCHEMA", "public")
+#         self.user = user or os.getenv("POSTGRES_USER", "feast")
+#         self.password = password or os.getenv("POSTGRES_PASSWORD", "feast")
 
-        # Create SQLAlchemy engine
-        self.engine = self._create_engine()
-        self.session = sessionmaker(bind=self.engine)
+#         # Create SQLAlchemy engine
+#         self.engine = self._create_engine()
+#         self.session = sessionmaker(bind=self.engine)
 
-    def _create_engine(self):
-        """Create SQLAlchemy engine with proper configuration."""
-        connection_string = f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
-        return create_engine(
-            connection_string,
-            connect_args={"options": f"-csearch_path={self.db_schema}"},
-        )
+#     def _create_engine(self):
+#         """Create SQLAlchemy engine with proper configuration."""
+#         connection_string = f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
+#         return create_engine(
+#             connection_string,
+#             connect_args={"options": f"-csearch_path={self.db_schema}"},
+#         )
 
-    def write_batch(
-        self,
-        df: pd.DataFrame,
-        table_name: str,
-        if_exists: str = "append",
-        index: bool = False,
-        chunk_size: int = 10000,
-    ) -> bool:
-        """
-        Write a batch of data to PostgreSQL table.
-        """
-        try:
-            if not table_name or not isinstance(table_name, str):
-                raise ValueError("Invalid table name")
+#     def write_batch(
+#         self,
+#         df: pd.DataFrame,
+#         table_name: str,
+#         if_exists: str = "append",
+#         index: bool = False,
+#         chunk_size: int = 10000,
+#     ) -> bool:
+#         """
+#         Write a batch of data to PostgreSQL table.
+#         """
+#         try:
+#             if not table_name or not isinstance(table_name, str):
+#                 raise ValueError("Invalid table name")
 
-            with self.engine.begin() as conn:
-                conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {self.db_schema}"))
-                df.to_sql(
-                    name=table_name,
-                    schema=self.db_schema,
-                    con=conn,
-                    if_exists=if_exists,
-                    index=index,
-                    chunksize=chunk_size,
-                    method="multi",
-                )
+#             with self.engine.begin() as conn:
+#                 conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {self.db_schema}"))
+#                 df.to_sql(
+#                     name=table_name,
+#                     schema=self.db_schema,
+#                     con=conn,
+#                     if_exists=if_exists,
+#                     index=index,
+#                     chunksize=chunk_size,
+#                     method="multi",
+#                 )
 
-            logger.info(
-                f"Successfully wrote {len(df)} rows to {self.db_schema}.{table_name}"
-            )
-            return True
+#             logger.info(
+#                 f"Successfully wrote {len(df)} rows to {self.db_schema}.{table_name}"
+#             )
+#             return True
 
-        except Exception as e:
-            logger.error(f"Error writing batch to PostgreSQL: {str(e)}")
-            return False
+#         except Exception as e:
+#             logger.error(f"Error writing batch to PostgreSQL: {str(e)}")
+#             return False
 
-# Connect Kafka to Spark, then it allows to read messages from specific Kafka topics 
+# # Connect Kafka to Spark, then it allows to read messages from specific Kafka topics 
 # kafkaDF = spark.readStream.format("kafka") \
 #     .option("kafka.bootstrap.servers", "broker:29092") \
 #     .option("subscribe", "training_data_streaming") \
 #     .option('startingOffsets', 'earliest') \
 #     .load()
 
-# Define schema for Minio notification events received from Kafka  
+# # Define schema for Minio notification events received from Kafka  
 # minio_event_schema = StructType([
 #     StructField("EventName", StringType(), True),
 #     StructField("Key", StringType(), True),
@@ -193,7 +193,7 @@ def write_to_postgres(processed_df, table_name):
         mode="append",
         properties=postgres_properties
     )
-    print("Attempting to write data to PostgreSQL...")
+    print(f"Successfully wrote {record_count} records to {table_name}")
     processed_df.show(10)
     # # Chuyển Spark DataFrame sang Pandas DataFrame
     # pandas_df = processed_df.toPandas()
@@ -331,18 +331,47 @@ def process_data(spark_df):
 #                                 .awaitTermination()
 
 # Simulate reading data from a local Parquet file
-local_file_path = "/opt/spark_app/data_2019-11-28_00.parquet"
-local_df = spark.read.schema(ecommerce_schema).parquet(local_file_path)
+# local_file_path = "/opt/spark_app/data_2019-11-28_00.parquet"
+# local_df = spark.read.schema(ecommerce_schema).parquet(local_file_path)
 
-# Lọc các giá trị event_time không hợp lệ
-local_df = local_df.filter(
-    (F.col("event_time") >= 0) & (F.col("event_time") <= 253402300799)
-)
-# Chuyển đổi event_time từ LongType sang TimestampType
-local_df = local_df.withColumn("event_time", F.from_unixtime(F.col("event_time") / 1000).cast("timestamp"))
-local_df.show(10)
-# Process the data
-processed_df = process_data(local_df)
+# # Lọc các giá trị event_time không hợp lệ
+# local_df = local_df.filter(
+#     (F.col("event_time") >= 0) & (F.col("event_time") <= 253402300799)
+# )
+# # Chuyển đổi event_time từ LongType sang TimestampType
+# local_df = local_df.withColumn("event_time", F.from_unixtime(F.col("event_time") / 1000).cast("timestamp"))
+# local_df.show(10)
+# # Process the data
+# processed_df = process_data(local_df)
 
-# Write processed data to PostgreSQL
-write_to_postgres(processed_df, table_name="processed_data")
+# # Write processed data to PostgreSQL
+# write_to_postgres(processed_df, table_name="processed_data")
+# Main execution
+try:
+    # Read Parquet file
+    local_file_path = "/opt/spark_app/data_2019-11-28_00.parquet"
+    local_df = spark.read.schema(ecommerce_schema).parquet(local_file_path)
+
+    # Filter valid event_time
+    # local_df = local_df.filter(
+    #     (col("event_time") >= 0) & (col("event_time") <= 253402300799)
+    # )
+
+    # Convert event_time to timestamp
+    local_df = local_df.withColumn(
+        "event_time",
+        to_timestamp(from_unixtime(col("event_time") / 1000))
+    )
+
+    # Process data
+    processed_df = process_data(local_df)
+
+    # Write to PostgreSQL
+    write_to_postgres(processed_df, table_name="processed_data")
+
+except Exception as e:
+    print(f"Error: {str(e)}")
+
+finally:
+    # Stop Spark session
+    spark.stop()
