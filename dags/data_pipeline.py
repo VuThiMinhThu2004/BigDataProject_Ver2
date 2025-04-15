@@ -37,7 +37,6 @@ default_args = {
 
 def bronze_layer(config: DataPipelineConfig) -> Dict[str, Any]:
     """Task group for the bronze layer of the data pipeline."""
-
     # Add pre-execution checks
     @task(task_id="check_prerequisites")
     def check_prerequisites():
@@ -50,6 +49,7 @@ def bronze_layer(config: DataPipelineConfig) -> Dict[str, Any]:
 
     # Add retries and timeouts to critical tasks
     @task(
+        task_id="ingest_raw_data",
         retries=3,
         retry_delay=timedelta(minutes=5),
         execution_timeout=timedelta(minutes=30),
@@ -172,8 +172,10 @@ def data_pipeline():
         gold_data = gold_layer(transformed_data)  # noqa: F841
         # quality_check_gold_data(gold_data)
 
-    # Define dependencies
+    # # Define dependencies
+    # bronze_group >> silver_group >> gold_group    
     bronze_group >> silver_group >> gold_group
+
 
 
 # Create DAG instance

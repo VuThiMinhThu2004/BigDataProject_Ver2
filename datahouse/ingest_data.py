@@ -79,6 +79,8 @@ def process_file(minio_client: Minio, bucket_name: str, object_name: str) -> Tup
         logger.error(f"Error processing file {object_name}: {e}")
         return object_name, b""
 
+
+# Sửa đoạn này 
 # Hàm chính sẽ được gọi trong file 'data_pipeline.py'
 def ingest_raw_data(minio_client: Minio, source_bucket: str = "storage") -> Dict[str, Any]:
     """

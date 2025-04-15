@@ -110,7 +110,7 @@ def batch_insert_data(
         """
 
         # Execute in batches using execute_values
-        batch_size = 1000
+        batch_size = 100
         execute_values(cur, insert_query, values, page_size=batch_size)
 
         # Commit the transaction

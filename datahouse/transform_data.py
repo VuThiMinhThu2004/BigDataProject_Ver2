@@ -138,6 +138,7 @@ def transform_data(validated_data: Dict[str, Any]) -> Dict[str, Any]:
     """Transform the validated data"""
     logger.info("Starting data transformation")
     try:
+        
         # Convert to DataFrame and log initial state
         df = pd.DataFrame(validated_data["data"])
 
@@ -178,7 +179,7 @@ def transform_data(validated_data: Dict[str, Any]) -> Dict[str, Any]:
         logger.info(f"Transformation metrics calculated: {metrics}")
 
         # Log metrics
-        PipelineMonitoring.log_metrics(metrics)
+        # PipelineMonitoring.log_metrics(metrics)
 
         # Convert to serializable format
         serializable_data = prepare_for_serialization(df)
