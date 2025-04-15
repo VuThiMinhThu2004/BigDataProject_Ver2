@@ -24,7 +24,7 @@ def upload_to_storage(minio_client, bucket_name, buffer, file_name):
 
 def csv_to_parquet(minio_client, bucket_name):
     
-    df = pd.read_csv('validated_streaming.csv')
+    df = pd.read_csv('C:\\Máy tính\\BigDataProject\\datalake\\validated_streaming.csv')
     df['event_time'] = pd.to_datetime(df['event_time'])
     df['date_hour'] = df['event_time'].dt.strftime('%Y-%m-%d %H')
 
@@ -51,7 +51,7 @@ def csv_to_individual_json(minio_client, bucket_name):
         logging.info("Starting to convert CSV rows to individual JSON files")
         
         # Đọc file CSV
-        df = pd.read_csv('validated_streaming.csv')
+        df = pd.read_csv('C:\\Máy tính\\BigDataProject\\datalake\\validated_streaming.csv')
         
         # Chuyển event_time thành datetime sau đó thành chuỗi để tránh lỗi serialization
         df['event_time'] = pd.to_datetime(df['event_time'])
