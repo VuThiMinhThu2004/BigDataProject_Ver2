@@ -29,6 +29,7 @@ spark.sparkContext._jsc.hadoopConfiguration().set("fs.s3a.endpoint", "minio:9000
 spark.sparkContext._jsc.hadoopConfiguration().set("fs.s3a.access.key", config['access_key'])
 spark.sparkContext._jsc.hadoopConfiguration().set("fs.s3a.secret.key", config['secret_key'])
 spark.sparkContext._jsc.hadoopConfiguration().set("fs.s3a.path.style.access", "true")
+spark.sparkContext._jsc.hadoopConfiguration().set("fs.s3a.connection.ssl.enabled", "false")
 spark.sparkContext._jsc.hadoopConfiguration().set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
 
 # Define schema for Minio notification events received from Kafka, only Key is enough to query precise file path
@@ -69,7 +70,8 @@ def process_batch(batch_df, batch_id):
 
     # batch_df chứa cột 'minio_object_key' được trích xuất từ Kafka message
     # Xây dựng đường dẫn S3 đầy đủ
-    batch_df = batch_df.withColumn("s3_path", expr(f"concat('s3a://{MINIO_BUCKET}/', minio_object_key)"))
+    # batch_df = batch_df.withColumn("s3_path", expr(f"concat('s3a://{MINIO_BUCKET}/', minio_object_key)"))
+    batch_df = batch_df.withColumn("s3_path", expr(f"concat('s3a://', minio_object_key)"))
 
     # Lấy danh sách các đường dẫn file cần đọc duy nhất trong batch này
     paths_to_read = [row.s3_path for row in batch_df.select("s3_path").distinct().collect()]
