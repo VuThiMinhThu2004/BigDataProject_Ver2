@@ -1,6 +1,6 @@
 # Configure & set access_key and secret_key manually. 
 # The setting values ​​are different for different locales.
 config = {
-    'access_key': 'JdBARXxevXO3PTrn6vQy',
-    'secret_key': 'D3KkzKj4IPnEwbpRqsbX8CzM2urdkKYNtkU85T02'
+    'access_key': 'SbstzBp81M0Jkhpio2ju',
+    'secret_key': 'yBle4P2A0SOR6lmS6wdKgBsfWWcDrVpPpygCKwW7'
 }

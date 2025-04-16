@@ -21,6 +21,13 @@ pendulum==2.1.2
 # Logging & Formatting
 rich==13.5.2
 PyYAML==6.0.1
+loguru==0.7.2
 
 # Minio 
 minio==7.2.0
+
+# Data Processing
+pandas==2.0.3
+
+# Templating
+jinja2==3.1.2
