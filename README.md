@@ -107,15 +107,18 @@ Kết quả:
    ```bash
    docker exec -it spark-master bash
    ```
-
-2. Chạy Spark:
+2. Cài đặt những thứ cần thiết:
+   ```bash
+   Exec docker -it spark-mater pip install spark-requirement.txt
+   ```
+3. Chạy Spark:
+   Chạy dữ liệu vào Redis:
    ```bash
    /opt/bitnami/spark/bin/spark-submit \
        --master spark://spark-master:7077 \
        --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.1,org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262 \
        /opt/spark_app/testing_data_streaming.py
    ```
-
 3. Sau khi Spark đã cài xong các file cấu hình liên quan và thực hiện xử lý, để kiểm tra xem data có đi vào Redis như kỳ vọng hay không:
    ```bash
    docker exec -it redis redis-cli 
@@ -124,4 +127,27 @@ Kết quả:
    (Dữ liệu lưu vào Redis theo định dạng key-value, truy vấn theo Key)
 
 #### Bước 5.2: Khởi động Spark để xử lý dữ liệu training
+   1. Chạy dữ liệu vào PostGre:
+   ```bash
+   conda install -c anaconda setuptools
+   ```
+   
+   2. Cách vào postgres xem dữ liệu: 
 
+   ```bash
+      docker exec -it postgres psql -U airflow -d airflow
+   ```
+   3. Sau đó nhập các lệnh sql để truy vấn bảng processed_data:
+   ```bash
+   SELECT * FROM processed_data LIMIT 10;
+   SELECT COUNT(*) FROM processed_data;
+   ```
+# Training Pipeline
+   1. Chạy docker
+   ```bash
+   docker-compose -f docker-compose.ray.yaml up -d
+   docker-compose -f docker-compose.model-registry.yaml up -d
+   ```
+   2. Truy cập địa chỉ:
+   - Ray Dashboard: http://10.200.2.51:8265/#/overview
+   - MLflow dashboard: http://10.200.2.51:5001/

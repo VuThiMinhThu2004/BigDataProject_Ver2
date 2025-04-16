@@ -148,6 +148,7 @@ services:
       - ./script/entrypoint.sh:/opt/airflow/script/entrypoint.sh
       - ./datahouse:/opt/airflow/dags/datahouse
       - ./requirements.txt:/opt/airflow/requirements.txt
+      # C:\Máy tính\BigDataProject\datalake\minio_config.py
       - ./datalake/minio_config.py:/opt/airflow/minio_config.py
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
