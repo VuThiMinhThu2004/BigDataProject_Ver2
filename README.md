@@ -129,7 +129,7 @@ Kết quả:
 #### Bước 5.2: Khởi động Spark để xử lý dữ liệu training
    1. Chạy dữ liệu vào PostGre:
    ```bash
-   docker exec -it spark-master spark-submit  --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.0,org.postgresql:postgresql:42.7.4  /opt/spark_app/training_data_stream.py
+   conda install -c anaconda setuptools
    ```
    
    2. Cách vào postgres xem dữ liệu: 
