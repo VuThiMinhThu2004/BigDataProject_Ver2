@@ -115,9 +115,3 @@ with DAG('testing_data_streaming',
     )
     
     streaming_task
-
-
-
-
-
-
