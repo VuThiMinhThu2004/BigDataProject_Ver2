@@ -137,10 +137,17 @@ Kết quả:
    ```bash
       docker exec -it postgres psql -U airflow -d airflow
    ```
-
    3. Sau đó nhập các lệnh sql để truy vấn bảng processed_data:
    ```bash
    SELECT * FROM processed_data LIMIT 10;
    SELECT COUNT(*) FROM processed_data;
    ```
-
+# Training Pipeline
+   1. Chạy docker
+   ```bash
+   docker-compose -f docker-compose.ray.yaml up -d
+   docker-compose -f docker-compose.model-registry.yaml up -d
+   ```
+   2. Truy cập địa chỉ:
+   - Ray Dashboard: http://10.200.2.51:8265/#/overview
+   - MLflow dashboard: http://10.200.2.51:5001/
