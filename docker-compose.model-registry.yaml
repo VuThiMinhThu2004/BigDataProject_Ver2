@@ -6,7 +6,7 @@ services:
     expose:
       - "${PG_PORT:-5432}"
     env_file:
-      - /root/thu/BigDataProject/model_registry/.env
+      - ./model_registry/.env
     environment:
       - POSTGRES_USER=${PG_USER:-mlflow}
       - POSTGRES_PASSWORD=${PG_PASSWORD:-mlflow}
@@ -39,7 +39,7 @@ services:
     depends_on:
       - db
     env_file:
-      - /root/thu/BigDataProject/model_registry/.env
+      - ./model_registry/.env
     ports:
       - "${MLFLOW_PORT:-5001}:5000"
     environment:

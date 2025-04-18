@@ -103,13 +103,15 @@ Kết quả:
 ### Bước 5: Khởi động Spark
 
 #### Bước 5.1: Khởi động Spark đối với `testing_data_streaming`, xử lý và chuyển dữ liệu vào Redis
-1. Truy cập vào Spark Master Terminal:
+1. Cài đặt những thứ cần thiết:
+   ```bash
+   docker exec -it spark-master pip install spark_app/spark_requirement.txt
+   conda install -c anaconda setuptools
+
+   ```
+2. Truy cập vào Spark Master Terminal:
    ```bash
    docker exec -it spark-master bash
-   ```
-2. Cài đặt những thứ cần thiết:
-   ```bash
-   Exec docker -it spark-mater pip install spark-requirement.txt
    ```
 3. Chạy Spark:
    Chạy dữ liệu vào Redis:
@@ -129,7 +131,7 @@ Kết quả:
 #### Bước 5.2: Khởi động Spark để xử lý dữ liệu training
    1. Chạy dữ liệu vào PostGre:
    ```bash
-   conda install -c anaconda setuptools
+   docker exec -it spark-master spark-submit  --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.0,org.postgresql:postgresql:42.7.4  /opt/spark_app/training_data_stream.py
    ```
    
    2. Cách vào postgres xem dữ liệu: 
@@ -149,5 +151,5 @@ Kết quả:
    docker-compose -f docker-compose.model-registry.yaml up -d
    ```
    2. Truy cập địa chỉ:
-   - Ray Dashboard: http://10.200.2.51:8265/#/overview
-   - MLflow dashboard: http://10.200.2.51:5001/
+   - Ray Dashboard: http://localhost:8265/#/overview
+   - MLflow dashboard: http://localhost:5001/

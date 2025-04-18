@@ -33,9 +33,7 @@ services:
       - confluent
 
   ray-worker:
-    build:
-      context: ray
-      dockerfile: Dockerfile
+    image: rayproject/ray:2.5.0-py39
     depends_on:
       - ray-head
     command: bash -c "ray start --address=ray-head:6379 --redis-password=your_password --num-cpus=10 --block"
