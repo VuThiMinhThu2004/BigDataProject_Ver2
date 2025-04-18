@@ -62,6 +62,9 @@ Kết quả:
    ```bash
    docker-compose up -d
    ```
+   Ghi chú hữu ích:
+      Tìm tiến trình đang chiếm công 8080: netstat -aon | findstr :8080
+      Xóa tiến trình: taskkill /PID <PID của tiến trình tìm được ở trên> /F
 
 2. Đợi webserver khởi động hoàn tất, sau đó khởi động lại scheduler:
    ```bash
