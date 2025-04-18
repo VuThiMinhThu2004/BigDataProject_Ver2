@@ -11,7 +11,7 @@ from pydantic import BaseModel
 import uvicorn
 
 # Configuration
-MODEL_DIR = "notebook/model-checkpoints/final-model/xgb_model"
+MODEL_DIR = "/app/notebook/model-checkpoints/final-model/xgb_model"
 REDIS_HOST = "redis"
 REDIS_PORT = 6379
 FEATURE_COLUMNS = [
