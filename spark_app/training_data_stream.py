@@ -15,7 +15,7 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col, to_timestamp, dayofweek, when, split, count, from_unixtime
 
-from pyspark.sql.types import StructType, StructField, StringType, LongType, DoubleType, ArrayType
+from pyspark.sql.types import StructType, StructField, StringType, LongType, DoubleType, ArrayType, TimestampType
 from pyspark.sql import Window
 from loguru import logger
 import urllib.parse
@@ -39,7 +39,7 @@ spark._jsc.hadoopConfiguration().set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3
 
 # Define schema for e-commerce data
 ecommerce_schema = StructType([
-    StructField("event_time", LongType(), True),
+    StructField("event_time", TimestampType(), True),  # Sửa thành TimestampType
     StructField("event_type", StringType(), True),
     StructField("product_id", LongType(), True),
     StructField("category_id", LongType(), True),
@@ -93,7 +93,15 @@ def process_data(spark_df):
         spark_df = spark_df.withColumnRenamed("event_time", "event_timestamp")
         spark_df = spark_df.withColumn(
             "event_timestamp",
-            to_timestamp(from_unixtime(col("event_timestamp") / 1000))
+            when(
+                col("event_timestamp").contains("UTC"),
+                to_timestamp(
+                    regexp_replace(col("event_timestamp"), " UTC$", ""),
+                    "yyyy-MM-dd HH:mm:ss"
+                )
+            ).otherwise(
+                to_timestamp(col("event_timestamp"), "yyyy-MM-dd HH:mm:ss")
+            )
         )
         logger.info(f"After timestamp conversion: {spark_df.count()} records")
 
