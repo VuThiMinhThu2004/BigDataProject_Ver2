@@ -1,8 +1,16 @@
+# features:
+#     brand: String
+#     price: Float
+#     event_weekday: Int
+#     category_code_1: String
+#     category_code_2: String
+#     activity_count: Int
+
 import os
 import json
 import redis
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import from_json, col, udf, expr
+from pyspark.sql.functions import from_json, col, udf, expr, split, to_timestamp, date_format, lit, dayofweek, when
 from pyspark.sql.types import (
     StructType, StructField, StringType, ArrayType,
     LongType, DoubleType, TimestampType
@@ -92,6 +100,17 @@ def process_batch(batch_df, batch_id):
         print("Sample MinIO Data:")
         minio_data_df.show(5, truncate=False)
 
+        # ✨ Thêm xử lý ở đây
+        minio_data_df = minio_data_df \
+            .withColumn("category_code_1", split("category_code", "\\.").getItem(0)) \
+            .withColumn("category_code_2", split("category_code", "\\.").getItem(1)) \
+            .withColumn("event_time_ts", to_timestamp("event_time")) \
+            .withColumn("event_weekday", dayofweek("event_time")) \
+            .withColumn("activity_count", lit(1))
+        
+        print("MinIO Data Schema (sau xử lý):")
+        minio_data_df.printSchema()
+        minio_data_df.show(5, truncate=False)
         # --- Lưu dữ liệu vào Redis ---
         minio_data_df.foreachPartition(save_partition_to_redis)
 
@@ -117,7 +136,24 @@ def save_partition_to_redis(partition_iterator):
                 # Ví dụ: sử dụng product_id làm key chính, hoặc kết hợp nhiều field
                 # redis_key = f"product:{row.product_id}"
                 # Ví dụ: sử dụng user_session và product_id
-                redis_key = f"session:{row.user_session}:product:{row.product_id}"
+                # redis_key = f"session:{row.user_session}:product:{row.product_id}"
+                redis_key = f"user:{row.user_id}:product:{row.product_id}"
+
+                # Các trường cần lưu
+                selected_keys = [
+                    "brand", "price", "event_weekday",
+                    "category_code_1", "category_code_2", "activity_count"
+                ]
+                
+                # Lấy dict và lọc field
+                row_dict = row.asDict()
+                redis_value = {k: str(row_dict.get(k, "")) for k in selected_keys}
+
+                # Lưu vào Redis
+                redis_client.hset(redis_key, mapping=redis_value)
+                
+                 # Optional debug:
+                print(f"Saved to Redis: {redis_key} -> {redis_value}")
 
                 # Quyết định value cho Redis
                 # Cách 1: Lưu toàn bộ row thành JSON string
@@ -126,8 +162,8 @@ def save_partition_to_redis(partition_iterator):
 
                 # Cách 2: Lưu thành Redis Hash (linh hoạt hơn)
                 # Chuyển đổi row thành dict, đảm bảo các giá trị là string
-                row_dict = {k: str(v) if v is not None else "" for k, v in row.asDict().items()}
-                redis_client.hset(redis_key, mapping=row_dict)
+                # row_dict = {k: str(v) if v is not None else "" for k, v in row.asDict().items()}
+                # redis_client.hset(redis_key, mapping=row_dict)
 
                 # print(f"Saved to Redis: Key='{redis_key}'")
 
