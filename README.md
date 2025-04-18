@@ -144,3 +144,5 @@ Kết quả:
    SELECT COUNT(*) FROM processed_data;
    ```
 
+   4. 
+
