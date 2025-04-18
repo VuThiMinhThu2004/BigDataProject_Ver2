@@ -235,6 +235,21 @@ services:
         timeout: 5s
         retries: 5
 
+  inference-api:
+    image: python:3.9
+    container_name: inference-api
+    command: bash -c "pip install -r /app/requirements.txt && python /app/main.py"
+    volumes:
+      - ./serving:/app
+      - ./notebook/model-checkpoints:/app/notebook/model-checkpoints
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+
 networks:
   confluent:
     external: true
