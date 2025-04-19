@@ -246,6 +246,8 @@ services:
       - "8000:8000"
     depends_on:
       - redis
+    networks:
+      - confluent
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379

@@ -2,6 +2,6 @@
 # The setting values ​​are different for different locales.
 # Comment lại giúp Chi nha em
 config = {
-    'access_key': 'T6sMJ0ENWHsyVWWXdMlI',
-    'secret_key': 'w9dciXDM8doZKay6PAbB4y2HF3x2wKPQtqKSfKgE'
+    'access_key': 'lYmBIaPgUyq3LTtbWiZP',
+    'secret_key': 'c0xSB2mntNNiPNDZS4SmI2aY6gX4LhoWyDniBr8i'
 }

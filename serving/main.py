@@ -35,7 +35,6 @@ current_model_file = None
 class PredictionRequest(BaseModel):
     user_id: int = 530834332
     product_id: int = 1005073
-    user_session: str = "040d0e0b-0a40-4d40-bdc9-c9252e877d9c"
 
 class PredictionResponse(BaseModel):
     predictions: List[float]
@@ -94,18 +93,31 @@ def get_features_from_redis(user_id: int, product_id: int) -> Dict[str, Any]:
     """Get features from Redis, similar to OnlineFeatureService."""
     try:
         # Construct the Redis key using user_id and product_id
-        key = f"feature:{user_id}:{product_id}"
-        feature_data = redis_client.get(key)
+        key = f"user:{user_id}:product:{product_id}"
+        key_type = redis_client.type(key)
+        print(f"Key type for {key} is {key_type}")
+
+        # feature_data = redis_client.get(key)
+        
+        # if not feature_data:
+        #     # Fallback to user-only features
+        #     key = f"user:{user_id}:product:{product_id}"
+        #     feature_data = redis_client.get(key)
+        # CHI ERROR BRIEF: redis_client.get là dùng cho key, hgetall dùng cho hash
+        feature_data = redis_client.hgetall(key)
         
         if not feature_data:
             # Fallback to user-only features
-            key = f"feature:{user_id}"
-            feature_data = redis_client.get(key)
+            key = f"user:{user_id}:product:{product_id}"
+            feature_data = redis_client.hgetall(key)
             
         if not feature_data:
             return {"success": False, "error": "Features not found in Redis"}
         
-        features = json.loads(feature_data)
+        # CHI ERROR BRIEF: vì decode_responses=True  khi khởi tạo redis_client, 
+        # thì tất cả các key-value trả về đã là str chứ không còn là bytes nữa.
+        # features = json.loads(feature_data)
+        features = feature_data  # Không cần decode lại
         return {"success": True, "features": features}
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -139,18 +151,30 @@ async def predict(requests: List[PredictionRequest]):
             feature_result = get_features_from_redis(
                 user_id=request.user_id, product_id=request.product_id
             )
+            print(f"Feature result: {feature_result}")
             
             if not feature_result["success"]:
                 raise HTTPException(
                     status_code=500,
-                    detail=f"Failed to get features for user_id={request.user_id}, product_id={request.product_id}: {feature_result['error']}",
+                    detail=f"Loi la: {feature_result['error']} for user_id={request.user_id}, product_id={request.product_id}: {feature_result['error']}",
                 )
-            
+            # CHI ERROR BRIEF: XGBoost không hỗ trợ kiểu dữ liệu Unicode (chuỗi) trực tiếp trong ma trận đầu vào,
+            # có lỗ hổng khiến chuỗi (string) lọt vào mô hình, gây lỗi Unicode-2 is not supported của xgboost.
+            # Redis trả về dạng (str) hết nha
             # Convert feature lists to single values
+            # feature_dict = {}
+            # for key, value in feature_result["features"].items():
+            #     feature_dict[key] = value[0] if isinstance(value, list) else value // Vấn đề ở dòng này
+            # Chi ép kiểu về float, lọc numeric
             feature_dict = {}
             for key, value in feature_result["features"].items():
-                feature_dict[key] = value[0] if isinstance(value, list) else value
-            
+                raw_value = value[0] if isinstance(value, list) else value
+                try:
+                    feature_dict[key] = float(raw_value)
+                except (ValueError, TypeError):
+                    # Gán giá trị mặc định nếu không phải số
+                    feature_dict[key] = 0.0
+
             features.append(feature_dict)
         
         # Filter features to include only relevant columns
