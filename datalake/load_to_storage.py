@@ -26,8 +26,8 @@ def upload_to_storage(minio_client, bucket_name, buffer, file_name):
 
 def csv_to_parquet(minio_client, bucket_name):
     
-    df = pd.read_csv('validated_streaming.csv')
-    # 
+    # df = pd.read_csv('/root/thu/BigDataProject/datalake/validated_streaming.csv')
+    df = pd.read_csv('./datalake/validated_streaming.csv')
     df['event_time'] = pd.to_datetime(df['event_time'])
     df['date_hour'] = df['event_time'].dt.strftime('%Y-%m-%d %H')
 
