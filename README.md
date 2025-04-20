@@ -110,9 +110,13 @@ Kết quả:
        /opt/spark_app/process_data_streaming.py
    ```
 3. Sau khi Spark đã cài xong các file cấu hình liên quan và thực hiện xử lý, để kiểm tra xem data có đi vào Redis như kỳ vọng hay không:
+   - Kiểm tra số lượng phần tử trong Redis:
    ```bash
-   docker exec -it redis redis-cli 
-   HGETALL "session:f2c45be2-c4cf-4caf-9c40-eaf0634b80dc:product:1307353"
+   docker exec -it redis redis-cli DBSIZE
+   ```
+   - Kiểm tra giá trị tại một phần tử với key được chỉ định:
+   ```bash
+   docker exec -it redis redis-cli HGETALL "user:571535080:product:12300394"
    ```
    (Dữ liệu lưu vào Redis theo định dạng key-value, truy vấn theo Key)
 # Training Pipeline
