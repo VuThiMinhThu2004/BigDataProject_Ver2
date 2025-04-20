@@ -105,9 +105,9 @@ Kết quả:
    Chạy dữ liệu vào Redis:
    ```bash
    /opt/bitnami/spark/bin/spark-submit \
-       --master spark://spark-master:7077 \
-       --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.1,org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262 \
-       /opt/spark_app/process_data_streaming.py
+      --master spark://spark-master:7077 \
+      --jars /opt/spark_app/jars/spark-sql-kafka-0-10_2.12-3.4.1.jar,/opt/spark_app/jars/hadoop-aws-3.3.4.jar,/opt/spark_app/jars/kafka-clients-3.3.2.jar,/opt/spark_app/jars/commons-pool2-2.11.1.jar,/opt/spark_app/jars/spark-token-provider-kafka-0-10_2.12-3.4.1.jar \
+      /opt/spark_app/process_data_streaming.py
    ```
 3. Sau khi Spark đã cài xong các file cấu hình liên quan và thực hiện xử lý, để kiểm tra xem data có đi vào Redis như kỳ vọng hay không:
    - Kiểm tra số lượng phần tử trong Redis:
