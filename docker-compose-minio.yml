@@ -36,8 +36,8 @@ services:
       sleep 5;
       /usr/bin/mc config --quiet host add dmlminio http://minio:9000 minioadmin minioadmin
       /usr/bin/mc mb --quiet dmlminio/bronze;
-      /usr/bin/mc mb --quiet dmlminio/storage;
-      /usr/bin/mc mb --quiet dmlminio/bronze/_checkpoints/testing_data_streaming;
+      /usr/bin/mc mb --quiet dmlminio/datasource;
+      /usr/bin/mc mb --quiet dmlminio/bronze/_checkpoints/data_streaming;
       exit 0;
       "
     networks:
