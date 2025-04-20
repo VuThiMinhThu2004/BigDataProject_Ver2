@@ -44,7 +44,7 @@ def minio_client_initialization():
     
     return minio_client
 
-def get_data(minio_client: Minio, bucket_name='storage'):
+def get_data(minio_client: Minio, bucket_name='datasource'):
     
     if not minio_client.bucket_exists(bucket_name):
         logging.error(f"Bucket {bucket_name} does not exist")
@@ -60,7 +60,7 @@ def get_data(minio_client: Minio, bucket_name='storage'):
     
     curr_accessed_element = int(last_accessed_element) + 1
     
-    target_filename = f"testing_data/{curr_accessed_element}.json"
+    target_filename = f"{curr_accessed_element}.json"
     
     try:
         objects = list(minio_client.list_objects(bucket_name=bucket_name, prefix=target_filename))
@@ -73,7 +73,7 @@ def get_data(minio_client: Minio, bucket_name='storage'):
         
     try:
         response = minio_client.get_object(bucket_name=bucket_name, object_name=target_filename)
-        dest_file = f"testing_data/{curr_accessed_element}.json"
+        dest_file = f"data/{curr_accessed_element}.json"
         return response, dest_file, curr_accessed_element
     except Exception as e:
         logging.error(f"Something went wrong when read object: {e}")
@@ -103,14 +103,14 @@ def stream_data():
     except Exception as e:
         logging.error(f"Something went wrong when trying to put data to bronze {e}")
         
-with DAG('testing_data_streaming', 
+with DAG('data_streaming', 
          default_args=default_args,
          schedule_interval=timedelta(minutes=1),
          catchup=False) as dag:
 
     # Streaming data to bronze storage
     streaming_task = PythonOperator(
-        task_id='load_data_to_minio',
+        task_id='load_data_bronze',
         python_callable=stream_data
     )
     
