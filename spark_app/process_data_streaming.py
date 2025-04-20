@@ -19,12 +19,12 @@ from pyspark.sql.types import (
 from minio_config import config
 
 # Important config variables
-KAFKA_BOOTSTRAP_SERVERS = "broker:29092"  # Sử dụng listener nội bộ của Kafka
-KAFKA_TOPIC = "testing_data_streaming"
+KAFKA_BOOTSTRAP_SERVERS = "broker:29092"
+KAFKA_TOPIC = "data_streaming"
 REDIS_HOST = "redis"
 REDIS_PORT = 6379
 MINIO_BUCKET = "bronze"
-CHECKPOINT_LOCATION = f"s3a://{MINIO_BUCKET}/_checkpoints/testing_data_streaming" # Lưu checkpoint trên MinIO
+CHECKPOINT_LOCATION = f"s3a://{MINIO_BUCKET}/_checkpoints/data_streaming" # Lưu checkpoint trên MinIO
 
 # Initialize Spark Session
 spark = SparkSession.builder \
@@ -43,27 +43,21 @@ spark.sparkContext._jsc.hadoopConfiguration().set("fs.s3a.impl", "org.apache.had
 # Define schema for Minio notification events received from Kafka, only Key is enough to query precise file path
 kafka_message_schema = StructType([
     StructField("Key", StringType(), True)
-    # Nếu cần đọc cấu trúc đầy đủ:
-    # StructField("Records", ArrayType(StructType([
-    #     StructField("s3", StructType([
-    #         StructField("object", StructType([
-    #             StructField("key", StringType(), True) # Key đã URL encoded
-    #         ]), True)
-    #     ]), True)
-    # ])), True)
 ])
 
 # Defne data schema for data stored as JSON format in bronze storage ~ Minio/bronze
 minio_json_schema = StructType([
-    StructField("event_time", StringType(), True), # Remain the StringType, or can change to TimestampType
-    StructField("event_type", StringType(), True),
-    StructField("product_id", LongType(), True),
-    StructField("category_id", LongType(), True),
-    StructField("category_code", StringType(), True),
-    StructField("brand", StringType(), True),
-    StructField("price", DoubleType(), True),
+    StructField("event_timestamp", TimestampType(), True),
     StructField("user_id", LongType(), True),
-    StructField("user_session", StringType(), True)
+    StructField("product_id", LongType(), True),
+    StructField("user_session", StringType(), True),
+    StructField("price", DoubleType(), True),
+    StructField("brand", StringType(), True),
+    StructField("category_code_level1", StringType(), True),
+    StructField("category_code_level2", StringType(), True),
+    StructField("event_weekday", LongType(), True), 
+    StructField("activity_count", LongType(), True),
+    StructField("is_purchased", LongType(), True),
 ])
 
 def process_batch(batch_df, batch_id):
@@ -78,7 +72,6 @@ def process_batch(batch_df, batch_id):
 
     # batch_df chứa cột 'minio_object_key' được trích xuất từ Kafka message
     # Xây dựng đường dẫn S3 đầy đủ
-    # batch_df = batch_df.withColumn("s3_path", expr(f"concat('s3a://{MINIO_BUCKET}/', minio_object_key)"))
     batch_df = batch_df.withColumn("s3_path", expr(f"concat('s3a://', minio_object_key)"))
 
     # Lấy danh sách các đường dẫn file cần đọc duy nhất trong batch này
@@ -95,24 +88,24 @@ def process_batch(batch_df, batch_id):
         # Spark sẽ tự động phân tích JSON dựa vào schema
         minio_data_df = spark.read.schema(minio_json_schema).json(paths_to_read)
 
-        print("MinIO Data Schema:")
+        print("MinIO Data Schema (Raw):")
         minio_data_df.printSchema()
-        print("Sample MinIO Data:")
+        print("Sample MinIO Data (Raw):")
         minio_data_df.show(5, truncate=False)
 
-        # ✨ Thêm xử lý ở đây
-        minio_data_df = minio_data_df \
-            .withColumn("category_code_1", split("category_code", "\\.").getItem(0)) \
-            .withColumn("category_code_2", split("category_code", "\\.").getItem(1)) \
-            .withColumn("event_time_ts", to_timestamp("event_time")) \
-            .withColumn("event_weekday", dayofweek("event_time")) \
-            .withColumn("activity_count", lit(1))
-        
-        print("MinIO Data Schema (sau xử lý):")
-        minio_data_df.printSchema()
-        minio_data_df.show(5, truncate=False)
+        # ✨ Xử lý dữ liệu (nếu cần thêm)
+        # Các trường category_code_level1, category_code_level2, event_weekday, activity_count đã có từ JSON
+        # Giữ nguyên giá trị null, không thay thế
+        processed_df = minio_data_df
+            # Thêm các xử lý khác nếu cần
+
+        print("Processed Data Schema:")
+        processed_df.printSchema()
+        print("Sample Processed Data:")
+        processed_df.show(5, truncate=False)
+
         # --- Lưu dữ liệu vào Redis ---
-        minio_data_df.foreachPartition(save_partition_to_redis)
+        processed_df.foreachPartition(save_partition_to_redis)
 
     except Exception as e:
         print(f"Error reading from MinIO or writing to Redis for batch {batch_id}: {e}")
@@ -126,46 +119,35 @@ def save_partition_to_redis(partition_iterator):
     redis_client = None
     try:
         print(f"Connecting to Redis at {REDIS_HOST}:{REDIS_PORT}")
-        redis_client = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, db=0)
+        redis_client = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, db=0, decode_responses=True) # decode_responses=True để key/value là string
         redis_client.ping() # Kiểm tra kết nối
         print("Successfully connected to Redis for partition.")
 
         for row in partition_iterator:
             try:
                 # Quyết định key cho Redis
-                # Ví dụ: sử dụng product_id làm key chính, hoặc kết hợp nhiều field
-                # redis_key = f"product:{row.product_id}"
-                # Ví dụ: sử dụng user_session và product_id
-                # redis_key = f"session:{row.user_session}:product:{row.product_id}"
+                # Sử dụng user_id và product_id làm key
                 redis_key = f"user:{row.user_id}:product:{row.product_id}"
 
-                # Các trường cần lưu
-                selected_keys = [
-                    "brand", "price", "event_weekday",
-                    "category_code_1", "category_code_2", "activity_count"
-                ]
-                
-                # Lấy dict và lọc field
-                row_dict = row.asDict()
-                redis_value = {k: str(row_dict.get(k, "")) for k in selected_keys}
+                # Các trường cần lưu vào Redis Hash
+                # Lấy các trường đã có từ JSON và xử lý
+                redis_value = {
+                    "brand": str(row.brand),
+                    "price": str(row.price),
+                    "event_weekday": str(row.event_weekday),
+                    "category_code_1": str(row.category_code_level1),
+                    "category_code_2": str(row.category_code_level2),
+                    "activity_count": str(row.activity_count),
+                    "is_purchased": str(row.is_purchased),
+                    "user_session": str(row.user_session), # Thêm user_session nếu cần
+                    "event_timestamp": str(row.event_timestamp) # Thêm timestamp nếu cần
+                }
 
-                # Lưu vào Redis
+                # Lưu vào Redis Hash
                 redis_client.hset(redis_key, mapping=redis_value)
-                
-                 # Optional debug:
-                print(f"Saved to Redis: {redis_key} -> {redis_value}")
 
-                # Quyết định value cho Redis
-                # Cách 1: Lưu toàn bộ row thành JSON string
-                # redis_value = json.dumps(row.asDict())
-                # redis_client.set(redis_key, redis_value)
-
-                # Cách 2: Lưu thành Redis Hash (linh hoạt hơn)
-                # Chuyển đổi row thành dict, đảm bảo các giá trị là string
-                # row_dict = {k: str(v) if v is not None else "" for k, v in row.asDict().items()}
-                # redis_client.hset(redis_key, mapping=row_dict)
-
-                # print(f"Saved to Redis: Key='{redis_key}'")
+                # Optional debug:
+                # print(f"Saved to Redis: {redis_key} -> {redis_value}")
 
             except Exception as e:
                 print(f"Error processing row or saving to Redis: {e}. Row: {row.asDict()}")
@@ -179,9 +161,8 @@ def save_partition_to_redis(partition_iterator):
     finally:
         if redis_client:
             print("Closing Redis connection for partition.")
-            redis_client.close()
-
-
+            # Không cần close() vì StrictRedis quản lý connection pool
+            pass
 
 print("Spark Session Created. Reading from Kafka...")
 
@@ -203,21 +184,6 @@ parsed_df = kafka_df \
     .select(col("kafka_data.Key").alias("minio_object_key")) \
     .filter(col("minio_object_key").isNotNull()) \
     .filter(col("minio_object_key") != "") # Bỏ qua các message không có key
-
-# Nếu cần decode key từ s3.object.key (URL encoded)
-# from urllib.parse import unquote
-# def url_decode(encoded_str):
-#     if encoded_str:
-#         return unquote(encoded_str)
-#     return None
-# url_decode_udf = udf(url_decode, StringType())
-# parsed_df = kafka_df \
-#     .select(col("value").cast("string").alias("kafka_value_str")) \
-#     .filter(col("kafka_value_str").isNotNull()) \
-#     .select(from_json(col("kafka_value_str"), kafka_message_schema).alias("kafka_data")) \
-#     .select(col("kafka_data.Records")[0].s3.object.key.alias("encoded_key")) \
-#     .withColumn("minio_object_key", url_decode_udf(col("encoded_key"))) \
-#     .filter(col("minio_object_key").isNotNull())
 
 print("Kafka Schema Parsed. Starting foreachBatch processing...")
 
