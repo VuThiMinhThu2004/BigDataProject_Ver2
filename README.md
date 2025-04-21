@@ -138,12 +138,6 @@ Kết quả:
    ```bash
    # Connect to Redis CLI
    docker exec -it redis redis-cli
-
-   # Add a sample feature record that matches your model's expected features  
-   SET "feature:530834332:1005073" "{\"brand\":\"apple\",\"price\":999.0,\"event_weekday\":2,\"category_code_level1\":\"electronics\",\"category_code_level2\":\"smartphone\",\"activity_count\":5}"
-
-   # Add another sample (optional)
-   SET "feature:568271465:1307353" "{\"brand\":\"acer\",\"price\":411.83,\"event_weekday\":3,\"category_code_level1\":\"computers\",\"category_code_level2\":\"notebook\",\"activity_count\":7}"
    ```
 3. Using the Swagger UI:
 - Test root endpoints: 
