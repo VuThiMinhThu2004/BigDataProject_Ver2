@@ -42,6 +42,4 @@
     - Prometheus: 9090
     - Grafana: 3000 (internal), 3009 (iframe access)
 - Model registry & serving:
-    - MLFlow: 5000 co
-    
-SET "feature:568271465:1307353" "{\"brand\":\"acer\",\"price\":411.83,\"event_weekday\":3,\"category_code_level1\":\"computers\",\"category_code_level2\":\"notebook\",\"activity_count\":7}"
+    - MLFlow: 5000

@@ -1,7 +1,6 @@
 import os
 import glob
 import re
-import json
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 import redis
@@ -142,6 +141,7 @@ async def predict(requests: List[PredictionRequest]):
     try:
         # Ensure model is loaded
         model, model_file = load_model()
+        print("Cac FEATURE DUNG DE TRAIN LA", model.feature_names)
         
         features = []
         
@@ -182,15 +182,19 @@ async def predict(requests: List[PredictionRequest]):
             {key: feature.get(key, 0) for key in FEATURE_COLUMNS}
             for feature in features
         ]
-        
+        print("FILTERED_FEATURES", filtered_features)
+        data=[[feature[col] for col in FEATURE_COLUMNS] for feature in filtered_features]
+        print("DATA NHU NAY", data)
+
         # Create DMatrix for prediction
         dmatrix = xgb.DMatrix(
-            data=[[feature[col] for col in FEATURE_COLUMNS] for feature in filtered_features]
+            data=[[feature[col] for col in FEATURE_COLUMNS] for feature in filtered_features],
+            feature_names=FEATURE_COLUMNS
         )
-        
+        print("MONG LA KHONG LOI", dmatrix)
         # Make predictions
         predictions = model.predict(dmatrix)
-        
+        print("PREDICT DUOC ROI NE", predictions)
         return PredictionResponse(
             predictions=predictions.tolist(),
             success=True,
@@ -201,6 +205,8 @@ async def predict(requests: List[PredictionRequest]):
         return PredictionResponse(
             predictions=[],
             success=False,
+            model_file=os.path.basename(model_file),
+
             error=str(e)
         )
 
