@@ -8,6 +8,58 @@ import xgboost as xgb
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uvicorn
+import time
+from prometheus_client import Counter, Histogram, generate_latest
+from prometheus_fastapi_instrumentator import Instrumentator
+from prometheus_client import CollectorRegistry
+from fastapi.responses import Response
+
+custom_registry = CollectorRegistry()
+
+app = FastAPI(title="XGBoost Inference API")
+
+# Thêm các metrics sau phần app = FastAPI()
+REQUEST_COUNT = Counter(
+    "inference_request_total", 
+    "Total number of inference requests", 
+    ["endpoint", "status"],
+    registry=custom_registry  # Thêm dòng này
+)
+LATENCY = Histogram(
+    "inference_latency_seconds", 
+    "Time spent processing inference requests",
+    ["endpoint"],
+    registry=custom_registry  # Thêm dòng này
+)
+MODEL_ERRORS = Counter(
+    "model_errors_total", 
+    "Total number of model errors",
+    ["error_type"],
+    registry=custom_registry  # Thêm dòng này
+)
+FEATURE_MISSING = Counter(
+    "feature_missing_total",
+    "Number of times features were missing in Redis",
+    registry=custom_registry  # Thêm dòng này
+
+)
+
+# Thêm middleware vào ứng dụng
+@app.middleware("http")
+async def add_process_time_header(request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    response.headers["X-Process-Time"] = str(process_time)
+    return response
+
+# Thêm endpoint để expose metrics cho Prometheus
+@app.get("/metrics")
+async def metrics():
+    return Response(
+        content=generate_latest(custom_registry),
+        media_type="text/plain"  # Đây là content-type mà Prometheus cần
+    )
 
 # Configuration
 MODEL_DIR = "/app/notebook/model-checkpoints/final-model/xgb_model"
@@ -22,8 +74,6 @@ FEATURE_COLUMNS = [
     "activity_count"
 ]
 
-app = FastAPI(title="XGBoost Inference API")
-
 # Connect to Redis
 redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
 
@@ -32,8 +82,8 @@ loaded_model = None
 current_model_file = None
 
 class PredictionRequest(BaseModel):
-    user_id: int = 530834332
-    product_id: int = 1005073
+    user_id: int = 571535080
+    product_id: int = 12300394
 
 class PredictionResponse(BaseModel):
     predictions: List[float]
@@ -138,11 +188,11 @@ async def root():
 @app.post("/predict", response_model=PredictionResponse)
 async def predict(requests: List[PredictionRequest]):
     """Make predictions using the loaded model."""
+    start_time = time.time()
+    REQUEST_COUNT.labels(endpoint="/predict", status="started").inc()
     try:
         # Ensure model is loaded
-        model, model_file = load_model()
-        print("Cac FEATURE DUNG DE TRAIN LA", model.feature_names)
-        
+        model, model_file = load_model()        
         features = []
         
         # Get features for each request
@@ -177,24 +227,19 @@ async def predict(requests: List[PredictionRequest]):
 
             features.append(feature_dict)
         
-        # Filter features to include only relevant columns
+        REQUEST_COUNT.labels(endpoint="/predict", status="success").inc()
+        LATENCY.labels(endpoint="/predict").observe(time.time() - start_time)
+
         filtered_features = [
             {key: feature.get(key, 0) for key in FEATURE_COLUMNS}
             for feature in features
         ]
-        print("FILTERED_FEATURES", filtered_features)
-        data=[[feature[col] for col in FEATURE_COLUMNS] for feature in filtered_features]
-        print("DATA NHU NAY", data)
 
-        # Create DMatrix for prediction
         dmatrix = xgb.DMatrix(
             data=[[feature[col] for col in FEATURE_COLUMNS] for feature in filtered_features],
             feature_names=FEATURE_COLUMNS
         )
-        print("MONG LA KHONG LOI", dmatrix)
-        # Make predictions
         predictions = model.predict(dmatrix)
-        print("PREDICT DUOC ROI NE", predictions)
         return PredictionResponse(
             predictions=predictions.tolist(),
             success=True,
@@ -202,11 +247,13 @@ async def predict(requests: List[PredictionRequest]):
         )
         
     except Exception as e:
+        REQUEST_COUNT.labels(endpoint="/predict", status="error").inc()
+        MODEL_ERRORS.labels(error_type=type(e).__name__).inc()
+        LATENCY.labels(endpoint="/predict").observe(time.time() - start_time)
         return PredictionResponse(
             predictions=[],
             success=False,
             model_file=os.path.basename(model_file),
-
             error=str(e)
         )
 
