@@ -119,7 +119,7 @@ Kết quả:
    docker exec -it redis redis-cli HGETALL "user:571535080:product:12300394"
    ```
    (Dữ liệu lưu vào Redis theo định dạng key-value, truy vấn theo Key)
-# Training Pipeline
+# Development stage
    1. Chạy docker
    ```bash
    docker-compose -f docker-compose.ray.yaml up -d
@@ -129,23 +129,12 @@ Kết quả:
    - Ray Dashboard: http://localhost:8265/#/overview
    - MLflow dashboard: http://localhost:5001/
 
-### Bước 6: set up để inference
-1. Start the Inference API
+# Production stage
+1. Start the Inference API (if bugged)
    ```bash
    docker-compose up -d inference-api
    ```
-2. Nếu Redis lỗi: bị trống thì thêm sample vào Redis
-   ```bash
-   # Connect to Redis CLI
-   docker exec -it redis redis-cli
-
-   # Add a sample feature record that matches your model's expected features  
-   SET "feature:530834332:1005073" "{\"brand\":\"apple\",\"price\":999.0,\"event_weekday\":2,\"category_code_level1\":\"electronics\",\"category_code_level2\":\"smartphone\",\"activity_count\":5}"
-
-   # Add another sample (optional)
-   SET "feature:568271465:1307353" "{\"brand\":\"acer\",\"price\":411.83,\"event_weekday\":3,\"category_code_level1\":\"computers\",\"category_code_level2\":\"notebook\",\"activity_count\":7}"
-   ```
-3. Using the Swagger UI:
+2. Using the Swagger UI:
 - Test root endpoints: 
    ```bash
    curl http://localhost:8000/
@@ -158,9 +147,34 @@ Kết quả:
    + Enter the sample request JSON
       [
          {
-            "user_id": 530834332,
-            "product_id": 1005073,
-            "user_session": "040d0e0b-0a40-4d40-bdc9-c9252e877d9c"
+            "user_id": 571535080,
+            "product_id": 12300394
+         }, 
+         {
+            "user_id": 554617586,
+            "product_id": 28713252
          }
       ]
    + Click "Execute"
+3. Tracking services
+   3.1. Setup Prometheus and Grafana
+   - Khởi động các service
+   ```bash
+   docker-compose up -d prometheus grafana inference-api
+   ```
+   3.2. Truy cập các trang web sau:
+   - Prometheus: http://localhost:9091
+   ![Prometheus](images/image.png)
+   Muốn xem metric nào thì gõ vào query rồi bấm execute để xem lại tracking. Hiện tại chỉ đang track các metric liên quan đến inference nên có thể bấm Execute inference nhiều lần trong localhost:8000/docs; rồi lại reload lại trang để xem sự thay đổi của graph Prometheus.
+   ![Prometheus tracking](images/image-1.png)
+   - Grafana: http://localhost:3000/. (username: admin, password: admin)
+   - Nơi ghi lại metric từ inference các request: http://localhost:8000/metrics. Sau khi đăng nhập, bấm vào mục data source nên có một data source từ Prometheus như hình dưới (Prometheus để tracking còn Grafana để visualize toàn diện hơn) do đã set up trong file: "monitoring\grafana\provisioning\datasources\datasource.yml"
+   ![Grafana data source](images/image-2.png)
+   Bấm vào home tạo dashboard mới, xong vào dashboard để visualizing bằng cách bấm nút add visualization
+   ![Grafana dashboard](images/image-3.png)
+   Do đã có sẵn 1 visualization/ 1 panel nên sẽ bấm như dưới
+   ![Grafana add visualization](images/image-4.png)
+   Xong chọn metric của việc inference muốn visualize: 
+   ![Grafana inference metric](images/image-5.png)
+   ![Grafana inference metric-2](images/image-6.png)
+   ![Grafana inference metric-3](images/image-7.png)
