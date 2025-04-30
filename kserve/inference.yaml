@@ -1,0 +1,15 @@
+apiVersion: "serving.kserve.io/v1beta1"
+kind: "InferenceService"
+metadata:
+  name: "xgboost"
+  namespace: "kserve-test"
+  annotations:
+    serving.kserve.io/s3-endpoint: "http://localhost:9000"  # Replace with your MinIO endpoint
+spec:
+  predictor:
+    serviceAccountName: "sa-minio-kserve"
+    xgboost: 
+      storageUri: "s3://models/xgboost_model_19_04_2025.bst"  # Path to your model in MinIO
+
+
+   
