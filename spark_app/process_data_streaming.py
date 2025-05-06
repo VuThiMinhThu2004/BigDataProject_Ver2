@@ -126,8 +126,8 @@ def save_partition_to_redis(partition_iterator):
         for row in partition_iterator:
             try:
                 # Quyết định key cho Redis
-                # Sử dụng user_id và product_id làm key
-                redis_key = f"user:{row.user_id}:product:{row.product_id}"
+                # Sử dụng user_id, product_id, user_session làm key
+                redis_key = f"user:{row.user_id}:product:{row.product_id}:session:{row.user_session}"
 
                 # Các trường cần lưu vào Redis Hash
                 # Lấy các trường đã có từ JSON và xử lý

@@ -116,7 +116,7 @@ Kết quả:
    ```
    - Kiểm tra giá trị tại một phần tử với key được chỉ định:
    ```bash
-   docker exec -it redis redis-cli HGETALL "user:571535080:product:12300394"
+   docker exec -it redis redis-cli HGETALL "user:{user_id}:product:{product_id}:session:{user_session}"
    ```
    (Dữ liệu lưu vào Redis theo định dạng key-value, truy vấn theo Key)
 # Development stage
