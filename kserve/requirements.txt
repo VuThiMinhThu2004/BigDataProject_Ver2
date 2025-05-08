@@ -1,0 +1,4 @@
+mlflow
+xgboost
+boto3
+redis

@@ -128,7 +128,7 @@ services:
       - ./data_source/minio_config.py:/opt/airflow/minio_config.py
       - ./datahouse:/opt/airflow/dags/datahouse
     ports:
-      - "8080:8080"
+      - "8082:8080"
     healthcheck:
       test: ['CMD-SHELL', "[ -f /opt/airflow/airflow-webserver.pid ]"]
       interval: 30s

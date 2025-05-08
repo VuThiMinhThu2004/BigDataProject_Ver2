@@ -1,0 +1,19 @@
+apiVersion: "serving.kserve.io/v1beta1"
+kind: "InferenceService"
+metadata:
+  name: "test-minio"
+  namespace: "kserve-test"
+
+    
+spec:
+  predictor:
+    serviceAccountName: sa-minio-kserve
+    model:
+      modelFormat:
+        name: xgboost
+      storageUri: "s3://models/xgboost_iris.ubj"
+
+
+        
+        
+   

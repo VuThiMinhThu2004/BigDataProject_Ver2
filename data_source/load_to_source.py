@@ -29,7 +29,7 @@ def csv_to_individual_json(minio_client, bucket_name):
         logging.info("Starting to convert CSV rows to individual JSON files")
         
         # Đọc file CSV
-        df = pd.read_csv('train_clean_small.csv')
+        df = pd.read_csv('data_source/train_clean_small.csv')
         
         # Chuyển event_time thành datetime sau đó thành chuỗi để tránh lỗi serialization
         df['event_timestamp'] = pd.to_datetime(df['event_timestamp'])

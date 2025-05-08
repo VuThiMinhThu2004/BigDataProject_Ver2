@@ -1,0 +1,41 @@
+apiVersion: "serving.kserve.io/v1beta1"
+kind: "InferenceService"
+metadata:
+  name: "bigdata-xgboost"
+  namespace: "kserve-test"
+    
+spec:
+  predictor:
+    serviceAccountName: sa-minio-kserve
+    model:
+      modelFormat:
+        name: xgboost
+      storageUri: "s3://models/xgboost_model_19_04_2025.ubj"
+      resources:
+        limits:
+          cpu: 100m
+          memory: 2Gi
+        requests:
+          cpu: 100m
+          memory: 2Gi
+
+  transformer:
+    containers:
+      - image: minhuet11/redis_transformer:latest
+        name: kserve-container
+        command:
+          - "python"
+          - "-m"
+          - "redis_transformer"
+        args: 
+          - --redis_host
+          - "192.168.1.102"
+        resources:
+          limits:
+            cpu: "100m"
+            memory: "512Mi"
+          requests:
+            cpu: "100m"
+            memory: "512Mi"
+        
+   
