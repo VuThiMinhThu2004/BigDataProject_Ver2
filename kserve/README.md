@@ -81,45 +81,67 @@ Lưu ý: nếu có bước nào lỗi thì kiểm tra toàn bộ pod xem có cá
 kubectl describe pod <tên pod> -n <tên namespace>
 ```
 
- Add the *.docker.internal names to the host's /etc/hosts file trong setting docker để tự update host.docker.internal khi khởi động lại -> apply & restart
 
-sửa dns mapping 
-kubectl edit cm config-domain --namespace knative-serving
-
+sửa dns mapping do svc.cluster.local không public qua ingress
 đổi _example.com: thành example.com: |
+
+```bash
+
+kubectl edit cm config-domain --namespace knative-serving
+```
 
 Triển khai InferenceService
 Tạo namespace kserve-test
+```bash
 kubectl create namespace kserve-test
+```
 
+config kết nối knative với minio host local, đổi địa chỉ IP 192.168.1.102 trong endpoint s3 "192.168.1.102:9000" thành địa chỉ IP của mình, tra địa chỉ IP thì dùng lệnh ipconfig
+```bash
+Ở dưới phần Wireless Lan adapter wi-fi:
+Wireless LAN adapter Wi-Fi:
 
-config kết nối knative với minio
+   Connection-specific DNS Suffix  . :
+   Link-local IPv6 Address . . . . . : fe80::1d8c:d78d:3da2:2acd%14
+   IPv4 Address. . . . . . . . . . . : 192.168.1.102
+   Subnet Mask . . . . . . . . . . . : 255.255.255.0
+   Default Gateway . . . . . . . . . : 192.168.1.1
+```
+
+```bash
 kubectl apply -n kserve-test -f kserve-minio-secret_manual.yaml
-
-
+```
 
 Triển khai service trong namespace kserve-test
-kubectl apply -n kserve-test -f test-minio.yaml
+```bash
+kubectl apply -n kserve-test -f inference.yaml
+
+```
+Kiểm tra pod sau khi chạy READY hết thì ok
+```bash
+kubectl get pods -n kserve-test
+
+NAME                                                            READY   STATUS    RESTARTS   AGE
+bigdata-xgboost-predictor-00001-deployment-cb7c9956c-ffbmz      2/2     Running   0          168m
+bigdata-xgboost-transformer-00001-deployment-6bcb69b695-dglp9   2/2     Running   0          168m
+```
+
+Test request trong urlrequest.py
+
+
+
+
+mấy câu lệnh giúp debug
+
 kubectl get inferenceservices -n kserve-test  
 kubectl describe inferenceservice test-minio -n kserve-test
 kubectl get inferenceservices test-minio -n kserve-test
 kubectl get revisions -n kserve-test
-
-
-istio-ingressgateway
-kubectl port-forward --namespace istio-system svc/istio-ingressgateway 8080:80
-
-kubectl exec -it test-minio-predictor-00001-deployment-86d48fc496-q9psq -- /bin/bash
-
-debug
-kubectl get pods -n kserve-test
-
 kubectl describe pod bigdata-xgboost-predictor-00001-deployment-64f64cc5cc-7m5dz -n kserve-test
-
 
 Lấy service hostname
 kubectl get inferenceservice bigdata-xgboost -n kserve-test -o jsonpath='{.status.components.predictor.url}' | sed 's|http://||'
-test-minio-predictor.kserve-test.example.com
+bigdata-xgboost.kserve-test.example.com
 
 
 Xóa service khi xong
@@ -129,7 +151,7 @@ docker build -t minhuet11/redis_transformer:latest -f redis_transformer.Dockerfi
 
 docker push minhuet11/redis_transformer:latest
 
-kubectl apply -f inference.yaml -n kserve-test
+
 kubectl delete -f inference.yaml -n kserve-test
 
 
