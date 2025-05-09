@@ -5,6 +5,7 @@ from sklearn.metrics import accuracy_score
 print(xgb.__version__)
 # Load dataset
 iris = load_iris()
+
 X, y = iris.data, iris.target
 
 # Train-test split
@@ -23,7 +24,7 @@ params = {
 
 # Train model
 bst_model = xgb.train(params, dtrain, num_boost_round=10)
-
+print(bst_model.feature_names)
 # Save model
 bst_model.save_model("xgboost_iris.ubj")
 

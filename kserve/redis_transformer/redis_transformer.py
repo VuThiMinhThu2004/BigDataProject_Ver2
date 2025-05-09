@@ -21,14 +21,16 @@ class RedisFeatureTransformer(kserve.Model):
         self.redis_client = redis.Redis(host=redis_host, port=redis_port, decode_responses=True)
         self.ready = True
 
+   
     def preprocess(self, inputs: Dict, headers: Dict[str, str] = None):
         instances = inputs["instances"]
         transformed_instances = []
-       
+
         for instance in instances:
             user_id = instance["user_id"]
             product_id = instance["product_id"]
             user_session = instance["user_session"]
+
             if not user_id:
                 raise ValueError("Missing 'user_id' in input instance.")
             if not product_id:
@@ -37,7 +39,6 @@ class RedisFeatureTransformer(kserve.Model):
                 raise ValueError("Missing 'user_session' in input instance.")
 
             redis_key = f"user:{user_id}:product:{product_id}:session:{user_session}"
-            key_type = self.redis_client.type(redis_key)
             features_data = self.redis_client.hgetall(redis_key)
             if not features_data:
                 raise ValueError(f"No features found in Redis for key: {redis_key}")
@@ -54,11 +55,15 @@ class RedisFeatureTransformer(kserve.Model):
                 key: feature_dict.get(key, 0.0)
                 for key in FEATURE_COLUMNS
             }
-            transformed_instances.append(feature_values)
+
+            transformed_instances.append([feature_values])
+
+        return {"instances": transformed_instances}
+
   
             
 
-        return {"instances": transformed_instances}
+
 
     def postprocess(self, inputs: Dict, headers: Dict[str, str] = None):
         return inputs

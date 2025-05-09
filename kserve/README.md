@@ -96,7 +96,10 @@ Tạo namespace kserve-test
 kubectl create namespace kserve-test
 ```
 
-config kết nối knative với minio host local, đổi địa chỉ IP 192.168.1.102 trong endpoint s3 "192.168.1.102:9000" thành địa chỉ IP của mình, tra địa chỉ IP thì dùng lệnh ipconfig
+config kết nối knative với minio host local, đổi địa chỉ IP 192.168.1.102 trong endpoint s3 "192.168.1.102:9000" trong file kserve-minio-secret_manual.yaml và redis_host trong file inference.yaml thành địa chỉ IP của mình, 
+
+tra địa chỉ IP dùng lệnh ipconfig
+
 ```bash
 Ở dưới phần Wireless Lan adapter wi-fi:
 Wireless LAN adapter Wi-Fi:
@@ -106,6 +109,11 @@ Wireless LAN adapter Wi-Fi:
    IPv4 Address. . . . . . . . . . . : 192.168.1.102
    Subnet Mask . . . . . . . . . . . : 255.255.255.0
    Default Gateway . . . . . . . . . : 192.168.1.1
+```
+
+Đổi đường dẫn đến mô hình trong file inference.yaml (s3://{tên bucket}/.../tên file model)
+```bash
+storageUri: "s3://models/xgboost_model_19_04_2025.ubj"
 ```
 
 ```bash
@@ -126,7 +134,10 @@ bigdata-xgboost-predictor-00001-deployment-cb7c9956c-ffbmz      2/2     Running 
 bigdata-xgboost-transformer-00001-deployment-6bcb69b695-dglp9   2/2     Running   0          168m
 ```
 
-Test request trong urlrequest.py
+Luồng request: request gồm user_id, product_id, user_session gửi đến service transformer (lấy dữ liệu từ redis) -> predictor (trả về kết quả dự đoán)
+
+Test request trong url_request.py
+Test request đến thẳng predictor trong url_request_predictor.py
 
 
 
@@ -141,6 +152,7 @@ kubectl describe pod bigdata-xgboost-predictor-00001-deployment-64f64cc5cc-7m5dz
 
 Lấy service hostname
 kubectl get inferenceservice bigdata-xgboost -n kserve-test -o jsonpath='{.status.components.predictor.url}' | sed 's|http://||'
+
 bigdata-xgboost.kserve-test.example.com
 
 
