@@ -84,6 +84,7 @@ current_model_file = None
 class PredictionRequest(BaseModel):
     user_id: int = 571535080
     product_id: int = 12300394
+    user_session: str = "a7d319fe-1894-4a87-8dad-0535466d9a57"
 
 class PredictionResponse(BaseModel):
     predictions: List[float]
@@ -138,11 +139,11 @@ def load_model():
         print(f"Error loading model: {str(e)}")
         raise
 
-def get_features_from_redis(user_id: int, product_id: int) -> Dict[str, Any]:
+def get_features_from_redis(user_id: int, product_id: int, user_session: str) -> Dict[str, Any]:
     """Get features from Redis, similar to OnlineFeatureService."""
     try:
         # Construct the Redis key using user_id and product_id
-        key = f"user:{user_id}:product:{product_id}"
+        key = f"user:{user_id}:product:{product_id}:session:{user_session}"
         key_type = redis_client.type(key)
         print(f"Key type for {key} is {key_type}")
 
@@ -157,7 +158,7 @@ def get_features_from_redis(user_id: int, product_id: int) -> Dict[str, Any]:
         
         if not feature_data:
             # Fallback to user-only features
-            key = f"user:{user_id}:product:{product_id}"
+            key = f"user:{user_id}:product:{product_id}:session:{user_session}"
             feature_data = redis_client.hgetall(key)
             
         if not feature_data:
@@ -199,14 +200,14 @@ async def predict(requests: List[PredictionRequest]):
         for request in requests:
             # Get features from Redis
             feature_result = get_features_from_redis(
-                user_id=request.user_id, product_id=request.product_id
+                user_id=request.user_id, product_id=request.product_id, user_session=request.user_session
             )
             print(f"Feature result: {feature_result}")
             
             if not feature_result["success"]:
                 raise HTTPException(
                     status_code=500,
-                    detail=f"Loi la: {feature_result['error']} for user_id={request.user_id}, product_id={request.product_id}: {feature_result['error']}",
+                    detail=f"Loi la: {feature_result['error']} for user_id={request.user_id}, product_id={request.product_id}, user_session = {request.user_session}: {feature_result['error']}",
                 )
             # CHI ERROR BRIEF: XGBoost không hỗ trợ kiểu dữ liệu Unicode (chuỗi) trực tiếp trong ma trận đầu vào,
             # có lỗ hổng khiến chuỗi (string) lọt vào mô hình, gây lỗi Unicode-2 is not supported của xgboost.
