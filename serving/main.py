@@ -164,9 +164,6 @@ def get_features_from_redis(user_id: int, product_id: int, user_session: str) ->
         if not feature_data:
             return {"success": False, "error": "Features not found in Redis"}
         
-        # CHI ERROR BRIEF: vì decode_responses=True  khi khởi tạo redis_client, 
-        # thì tất cả các key-value trả về đã là str chứ không còn là bytes nữa.
-        # features = json.loads(feature_data)
         features = feature_data  # Không cần decode lại
         return {"success": True, "features": features}
     except Exception as e:

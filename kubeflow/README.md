@@ -272,3 +272,19 @@ kubectl apply -f config/minio-kserve-secret.yaml
 ```
 
 ## Sử dụng
+Truy cập port `8080` của external IP của kubeflow server hoặc  `localhost:8080` nếu triển khai ở local để sử dụng Kubeflow
+
+Đăng nhập Dex sử dụng user và mật khẩu đã config
+![login page](images/loginpage.png)
+
+Tạo notebook, tải dữ liệu training lên và train mô hình, track sử dụng mlflow, có thể tham khảo trong `/notebook/`
+![create notebook](images/createnotebook.png)
+![training](images/training.png)
+
+Quản lý experiment và track metric dùng mlflow
+![mlflow](images/mlflowmetric.png)
+
+Tạo KServe endpoint từ mô hình thuộc namespace của người dùng
+![kserve](images/kserveendpoint.png)
+
+Sau khi tạo KServe API thực hiện theo hướng dẫn ở https://github.com/kserve/kserve/tree/master/docs/samples/istio-dex để test và tích hợp vào fastapi
