@@ -6,7 +6,7 @@ Dự án này trung vào việc xây dựng một hệ thống xử lý dữ li�
 
 ## 2. Kiến trúc hệ thống
 
-Hệ thống được thiết kế dựa trên kiến trúc microservices, sử dụng Docker và Docker Compose để quản lý các container. Sơ đồ kiến trúc tổng quan:
+Hệ thống được thiết kế dựa trên kiến trúc microservices, sử dụng Kubernetes, Docker và Docker Compose để quản lý các container/pod. Sơ đồ kiến trúc tổng quan:
 
 ![Kiến trúc hệ thống](images/system_architecture.png)
 *Sơ đồ kiến trúc tổng quan của hệ thống Data Streaming ETL & MLOps.*
@@ -22,25 +22,27 @@ Hệ thống được thiết kế dựa trên kiến trúc microservices, sử 
 *   **Redis**: Lưu trữ key-value cho dữ liệu cần truy cập nhanh, phục vụ cho các ứng dụng thời gian thực và lưu trữ kết quả xử lý từ Spark.
 
 **MLOps & Model Lifecycle (Huấn luyện, Triển khai và Giám sát Mô hình):**
+*   **Dex**: Quản lý đăng nhập người dùng cho nền tảng MLOps.
 *   **MLflow**: Quản lý vòng đời mô hình học máy (theo dõi thử nghiệm, đóng gói mô hình, đăng ký mô hình).
-*   **Ray**: Framework phân tán cho huấn luyện mô hình học máy quy mô lớn, đặc biệt cho việc tinh chỉnh siêu tham số (hyperparameter tuning).
+*   **Kubeflow**: Framework giúp triển khai nền tảng MLOps trên Kubernetes, cung cấp chức năng chia/quản lý workspace cho người dùng, giới hạn quyền truy cập, cho phép người dùng tạo notebook, không gian giả lập vscode (Kubeflow Notebook), tạo inference API (KServe),... thông qua giao diện web (Kubeflow Dashboard). 
 *   **FastAPI**: Xây dựng API hiệu suất cao cho việc phục vụ mô hình (model serving/inference).
 *   **Prometheus**: Thu thập metrics từ các dịch vụ, bao gồm cả inference API để giám sát hiệu suất.
 *   **Grafana**: Trực quan hóa metrics và giám sát hệ thống thông qua các dashboards.
 
 ## 3. Yêu cầu hệ thống
-
+*   **Với MLOps Platform**: Server riêng với public IP hoặc có thể triển khai Kubeflow cùng máy với phần còn lại của hệ thống.
 *   **Docker Desktop** và **Docker Compose** (phiên bản mới nhất được khuyến nghị).
 *   **Python 3.9+** cho việc chạy các script cục bộ (ví dụ: `data_source/load_to_source.py`).
     *   Các thư viện Python cần thiết cho script cục bộ (xem `requirements.txt` nếu có, hoặc cài đặt thủ công): `minio`, `pandas`, `pyarrow`.
 *   **Hệ điều hành**: Windows (với PowerShell), macOS, hoặc Linux.
-*   **Tài nguyên hệ thống**: Đủ RAM (khuyến nghị 16GB+), CPU (4 cores+), và dung lượng đĩa trống để chạy các Docker containers.
+*   **Tài nguyên hệ thống**: Đủ RAM (16GB+), CPU (8 cores+), và dung lượng đĩa trống để chạy các Docker containers. Cần nhiều RAM hơn nếu chạy cả Kubeflow.
 *   **Kết nối Internet**: Để tải Docker images và các dependencies (nếu chưa có sẵn local).
 
 ## 4. Cấu trúc thư mục dự án
 
 ```
 realtime-data-streaming/
+├── kubeflow/               # Chứa tài liệu hướng dẫn triển khai Kubeflow, các file YAML cần thiết và các file notebook
 ├── dags/                   # Định nghĩa các DAGs cho Apache Airflow (e.g., data_streaming.py)
 ├── data_source/            # Scripts (load_to_source.py) và dữ liệu nguồn (train_clean_small.csv)
 ├── images/                 # Hình ảnh sử dụng trong tài liệu README
@@ -59,6 +61,9 @@ realtime-data-streaming/
 ## 5. Hướng dẫn cài đặt và triển khai
 
 ### 5.1. Thiết lập ban đầu
+0. **Triển khai Kubeflow tích hợp MLflow**
+    
+    Xem cụ thể trong thư mục `kubeflow/`. Sau khi server Kubeflow được triển khai, các người dùng có thể thực hiện huấn luyện mô hình, tạo API để chuẩn bị cho các bước sau.
 
 1.  **Tạo Docker network chung:**
     Mở PowerShell hoặc terminal và chạy lệnh sau:
@@ -252,4 +257,4 @@ Sau khi có mô hình đã huấn luyện và đăng ký trong MLflow, triển k
 *   [Phạm Công Minh - 22028239](https://github.com/minh-1129)  
 
 ---
-*Tài liệu này được cập nhật lần cuối vào: May 23, 2025*
+*Tài liệu này được cập nhật lần cuối vào: May 28, 2025*

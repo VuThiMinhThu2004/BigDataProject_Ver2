@@ -1,0 +1,12 @@
+apiVersion: kubeflow.org/v1
+kind: Profile
+metadata:
+  name: bigdata
+spec:
+  owner:
+    kind: User
+    name: bigdata@gmail.com
+
+  plugins: []
+  
+  resourceQuotaSpec: {}
