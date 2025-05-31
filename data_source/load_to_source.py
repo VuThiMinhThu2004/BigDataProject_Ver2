@@ -28,35 +28,33 @@ def csv_to_individual_json(minio_client, bucket_name):
     try:
         logging.info("Starting to convert CSV rows to individual JSON files")
         
-        # Đọc file CSV
+        # Read .csv file from specific path
         df = pd.read_csv('train_clean_small.csv')
         
-        # Chuyển event_time thành datetime sau đó thành chuỗi để tránh lỗi serialization
+        # Convert event_time to datetime (avoid further serialization error)
         df['event_timestamp'] = pd.to_datetime(df['event_timestamp'])
         df['event_timestamp'] = df['event_timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S')
         
-        # Tạo thêm cột ID duy nhất cho mỗi hàng nếu chưa có
+        # Adding ID collumn
         df['row_id'] = range(1, len(df) + 1)
         
-        # Xử lý từng hàng
         for index, row in df.iterrows():
-            # Chuyển đổi hàng thành dict
+            # Convert dataframe row to python dict
             row_dict = row.to_dict()
 
-            # Tạo tên file
+            # Assign new name
             file_name = f"{row_dict['row_id']}.json"
             
-            # Loại bỏ row_id từ dữ liệu cuối cùng nếu không muốn lưu
             if 'row_id' in row_dict:
                 del row_dict['row_id']
             
-            # Chuyển dict thành chuỗi JSON
+            # Convert from dich to JSON format
             json_string = json.dumps(row_dict)
             
-            # Tạo buffer từ chuỗi JSON
+            # Buffering pre-created JSON
             buffer = io.BytesIO(json_string.encode('utf-8'))
             
-            # Upload lên MinIO
+            # Upload to MinIO /datasource
             upload_to_source(
                 minio_client=minio_client, 
                 bucket_name=bucket_name, 
@@ -64,7 +62,8 @@ def csv_to_individual_json(minio_client, bucket_name):
                 file_name=file_name
             )
             
-            if index % 100 == 0:  # Log cứ mỗi 100 hàng
+            # Tracking the progress
+            if index % 100 == 0:
                 logging.info(f"Processed {index} rows")
                 
             if (index > 5000):
@@ -94,7 +93,6 @@ def main():
             minio_client.make_bucket(bucket_name=bucket_name)
             logging.info(f"Successfully created bucket: {bucket_name}")
         
-        # Chuyển từng hàng của CSV thành file JSON riêng biệt
         logging.info("Converting CSV rows to individual JSON files...")
         csv_to_individual_json(minio_client=minio_client, bucket_name=bucket_name)
         

@@ -23,24 +23,24 @@ REQUEST_COUNT = Counter(
     "inference_request_total", 
     "Total number of inference requests", 
     ["endpoint", "status"],
-    registry=custom_registry  # Thêm dòng này
+    registry=custom_registry
 )
 LATENCY = Histogram(
     "inference_latency_seconds", 
     "Time spent processing inference requests",
     ["endpoint"],
-    registry=custom_registry  # Thêm dòng này
+    registry=custom_registry
 )
 MODEL_ERRORS = Counter(
     "model_errors_total", 
     "Total number of model errors",
     ["error_type"],
-    registry=custom_registry  # Thêm dòng này
+    registry=custom_registry 
 )
 FEATURE_MISSING = Counter(
     "feature_missing_total",
     "Number of times features were missing in Redis",
-    registry=custom_registry  # Thêm dòng này
+    registry=custom_registry 
 
 )
 
@@ -58,7 +58,7 @@ async def add_process_time_header(request, call_next):
 async def metrics():
     return Response(
         content=generate_latest(custom_registry),
-        media_type="text/plain"  # Đây là content-type mà Prometheus cần
+        media_type="text/plain"
     )
 
 # Configuration
@@ -149,11 +149,6 @@ def get_features_from_redis(user_id: int, product_id: int, user_session: str) ->
 
         # feature_data = redis_client.get(key)
         
-        # if not feature_data:
-        #     # Fallback to user-only features
-        #     key = f"user:{user_id}:product:{product_id}"
-        #     feature_data = redis_client.get(key)
-        # CHI ERROR BRIEF: redis_client.get là dùng cho key, hgetall dùng cho hash
         feature_data = redis_client.hgetall(key)
         
         if not feature_data:
@@ -206,14 +201,7 @@ async def predict(requests: List[PredictionRequest]):
                     status_code=500,
                     detail=f"Loi la: {feature_result['error']} for user_id={request.user_id}, product_id={request.product_id}, user_session = {request.user_session}: {feature_result['error']}",
                 )
-            # CHI ERROR BRIEF: XGBoost không hỗ trợ kiểu dữ liệu Unicode (chuỗi) trực tiếp trong ma trận đầu vào,
-            # có lỗ hổng khiến chuỗi (string) lọt vào mô hình, gây lỗi Unicode-2 is not supported của xgboost.
-            # Redis trả về dạng (str) hết nha
-            # Convert feature lists to single values
-            # feature_dict = {}
-            # for key, value in feature_result["features"].items():
-            #     feature_dict[key] = value[0] if isinstance(value, list) else value // Vấn đề ở dòng này
-            # Chi ép kiểu về float, lọc numeric
+
             feature_dict = {}
             for key, value in feature_result["features"].items():
                 raw_value = value[0] if isinstance(value, list) else value

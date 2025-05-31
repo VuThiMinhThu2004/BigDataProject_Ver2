@@ -1,11 +1,3 @@
-# features:
-#     brand: String
-#     price: Float
-#     event_weekday: Int
-#     category_code_1: String
-#     category_code_2: String
-#     activity_count: Int
-
 import os
 import json
 import redis
@@ -61,20 +53,15 @@ minio_json_schema = StructType([
 ])
 
 def process_batch(batch_df, batch_id):
-    """
-    Hàm xử lý cho từng micro-batch trong Structured Streaming.
-    Đọc file từ MinIO dựa trên key từ Kafka và lưu vào Redis.
-    """
+    
     print(f"--- Processing Batch ID: {batch_id} ---")
     if batch_df.isEmpty():
         print("Batch is empty.")
         return
 
-    # batch_df chứa cột 'minio_object_key' được trích xuất từ Kafka message
-    # Xây dựng đường dẫn S3 đầy đủ
     batch_df = batch_df.withColumn("s3_path", expr(f"concat('s3a://', minio_object_key)"))
 
-    # Lấy danh sách các đường dẫn file cần đọc duy nhất trong batch này
+    # Fetch list of objects need to be processed
     paths_to_read = [row.s3_path for row in batch_df.select("s3_path").distinct().collect()]
 
     if not paths_to_read:
@@ -84,8 +71,7 @@ def process_batch(batch_df, batch_id):
     print(f"Reading files from MinIO: {paths_to_read}")
 
     try:
-        # Đọc tất cả các file JSON tương ứng từ MinIO
-        # Spark sẽ tự động phân tích JSON dựa vào schema
+        # Read JSON respective objects from MinIO & analyze
         minio_data_df = spark.read.schema(minio_json_schema).json(paths_to_read)
 
         print("MinIO Data Schema (Raw):")
@@ -93,29 +79,21 @@ def process_batch(batch_df, batch_id):
         print("Sample MinIO Data (Raw):")
         minio_data_df.show(5, truncate=False)
 
-        # ✨ Xử lý dữ liệu (nếu cần thêm)
-        # Các trường category_code_level1, category_code_level2, event_weekday, activity_count đã có từ JSON
-        # Giữ nguyên giá trị null, không thay thế
+        # Perform data transformation
         processed_df = minio_data_df
-            # Thêm các xử lý khác nếu cần
 
         print("Processed Data Schema:")
         processed_df.printSchema()
         print("Sample Processed Data:")
         processed_df.show(5, truncate=False)
 
-        # --- Lưu dữ liệu vào Redis ---
+        # Store cleaned data into Redis
         processed_df.foreachPartition(save_partition_to_redis)
 
     except Exception as e:
         print(f"Error reading from MinIO or writing to Redis for batch {batch_id}: {e}")
-        # Có thể thêm logic xử lý lỗi ở đây (ví dụ: ghi log, gửi cảnh báo)
 
 def save_partition_to_redis(partition_iterator):
-    """
-    Hàm được gọi cho mỗi partition của DataFrame để lưu dữ liệu vào Redis.
-    Mở một kết nối Redis cho mỗi partition.
-    """
     redis_client = None
     try:
         print(f"Connecting to Redis at {REDIS_HOST}:{REDIS_PORT}")
@@ -125,12 +103,10 @@ def save_partition_to_redis(partition_iterator):
 
         for row in partition_iterator:
             try:
-                # Quyết định key cho Redis
-                # Sử dụng user_id, product_id, user_session làm key
+                # Define Redis key
                 redis_key = f"user:{row.user_id}:product:{row.product_id}:session:{row.user_session}"
 
-                # Các trường cần lưu vào Redis Hash
-                # Lấy các trường đã có từ JSON và xử lý
+                # Define Redis value corresponding to key
                 redis_value = {
                     "brand": str(row.brand),
                     "price": str(row.price),
@@ -143,7 +119,7 @@ def save_partition_to_redis(partition_iterator):
                     "event_timestamp": str(row.event_timestamp) # Thêm timestamp nếu cần
                 }
 
-                # Lưu vào Redis Hash
+                # Stor ein Redis hash
                 redis_client.hset(redis_key, mapping=redis_value)
 
                 # Optional debug:
@@ -151,17 +127,14 @@ def save_partition_to_redis(partition_iterator):
 
             except Exception as e:
                 print(f"Error processing row or saving to Redis: {e}. Row: {row.asDict()}")
-                # Ghi log lỗi chi tiết nếu cần
 
     except redis.exceptions.ConnectionError as e:
         print(f"FATAL: Could not connect to Redis for partition: {e}")
-        # Nên có cơ chế retry hoặc báo lỗi nghiêm trọng ở đây
     except Exception as e:
         print(f"FATAL: Error in Redis saving partition: {e}")
     finally:
         if redis_client:
             print("Closing Redis connection for partition.")
-            # Không cần close() vì StrictRedis quản lý connection pool
             pass
 
 print("Spark Session Created. Reading from Kafka...")
@@ -176,7 +149,7 @@ kafka_df = spark.readStream \
     .load()
 
 # Parse msg reeceived from Kafka Topic
-# Chuyển value từ binary sang string và parse JSON
+# Convert value from binary to string & parse JSON
 parsed_df = kafka_df \
     .select(col("value").cast("string").alias("kafka_value_str")) \
     .filter(col("kafka_value_str").isNotNull()) \
@@ -187,7 +160,6 @@ parsed_df = kafka_df \
 
 print("Kafka Schema Parsed. Starting foreachBatch processing...")
 
-# --- Ghi stream sử dụng foreachBatch ---
 query = parsed_df.writeStream \
     .foreachBatch(process_batch) \
     .outputMode("update") \
