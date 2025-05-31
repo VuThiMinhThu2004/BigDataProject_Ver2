@@ -4,7 +4,6 @@ import re
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 import redis
-import xgboost as xgb
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uvicorn
@@ -13,23 +12,25 @@ from prometheus_client import Counter, Histogram, generate_latest
 from prometheus_fastapi_instrumentator import Instrumentator
 from prometheus_client import CollectorRegistry
 from fastapi.responses import Response
+import requests as Req
+
+from dex_auth import get_istio_auth_session
 
 custom_registry = CollectorRegistry()
-
 app = FastAPI(title="XGBoost Inference API")
 
-# Thêm các metrics sau phần app = FastAPI()
+# Prometheus Metrics
 REQUEST_COUNT = Counter(
     "inference_request_total", 
     "Total number of inference requests", 
     ["endpoint", "status"],
-    registry=custom_registry
+    registry=custom_registry  
 )
 LATENCY = Histogram(
     "inference_latency_seconds", 
     "Time spent processing inference requests",
     ["endpoint"],
-    registry=custom_registry
+    registry=custom_registry  
 )
 MODEL_ERRORS = Counter(
     "model_errors_total", 
@@ -40,11 +41,9 @@ MODEL_ERRORS = Counter(
 FEATURE_MISSING = Counter(
     "feature_missing_total",
     "Number of times features were missing in Redis",
-    registry=custom_registry 
-
+    registry=custom_registry  
 )
 
-# Thêm middleware vào ứng dụng
 @app.middleware("http")
 async def add_process_time_header(request, call_next):
     start_time = time.time()
@@ -53,7 +52,6 @@ async def add_process_time_header(request, call_next):
     response.headers["X-Process-Time"] = str(process_time)
     return response
 
-# Thêm endpoint để expose metrics cho Prometheus
 @app.get("/metrics")
 async def metrics():
     return Response(
@@ -77,7 +75,7 @@ FEATURE_COLUMNS = [
 # Connect to Redis
 redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
 
-# Global model variable
+# Global model variables
 loaded_model = None
 current_model_file = None
 
@@ -89,147 +87,108 @@ class PredictionRequest(BaseModel):
 class PredictionResponse(BaseModel):
     predictions: List[float]
     success: bool = True
-    model_file: Optional[str] = None
     error: Optional[str] = None
+    predictor_status: Optional[str] = None
 
-def find_latest_model() -> str:
-    """Find the most recent model checkpoint in the specified directory."""
-    pattern = os.path.join(MODEL_DIR, "xgboost_model_*.ubj")
-    model_files = glob.glob(pattern)
-    
-    if not model_files:
-        raise FileNotFoundError(f"No model files found in {MODEL_DIR}")
-    
-    # Extract date from filename and find the most recent one
-    latest_model = None
-    latest_date = None
-    
-    for model_file in model_files:
-        # Extract date from filename (format: xgboost_model_DD_MM_YYYY.ubj)
-        match = re.search(r'xgboost_model_(\d{2})_(\d{2})_(\d{4})\.ubj', model_file)
-        if match:
-            day, month, year = map(int, match.groups())
-            file_date = datetime(year, month, day)
-            
-            if latest_date is None or file_date > latest_date:
-                latest_date = file_date
-                latest_model = model_file
-    
-    if latest_model is None:
-        raise FileNotFoundError("Could not parse dates from model filenames")
-        
-    return latest_model
-
-def load_model():
-    """Load the latest XGBoost model."""
-    global loaded_model, current_model_file
-    try:
-        model_file = find_latest_model()
-        
-        # Only reload if the model file has changed
-        if current_model_file != model_file:
-            print(f"Loading model from {model_file}")
-            model = xgb.Booster()
-            model.load_model(model_file)
-            loaded_model = model
-            current_model_file = model_file
-        
-        return loaded_model, current_model_file
-    except Exception as e:
-        print(f"Error loading model: {str(e)}")
-        raise
 
 def get_features_from_redis(user_id: int, product_id: int, user_session: str) -> Dict[str, Any]:
-    """Get features from Redis, similar to OnlineFeatureService."""
+    """Retrieve features from Redis."""
     try:
-        # Construct the Redis key using user_id and product_id
         key = f"user:{user_id}:product:{product_id}:session:{user_session}"
         key_type = redis_client.type(key)
         print(f"Key type for {key} is {key_type}")
 
-        # feature_data = redis_client.get(key)
-        
         feature_data = redis_client.hgetall(key)
         
         if not feature_data:
-            # Fallback to user-only features
             key = f"user:{user_id}:product:{product_id}:session:{user_session}"
             feature_data = redis_client.hgetall(key)
             
         if not feature_data:
             return {"success": False, "error": "Features not found in Redis"}
-        
-        features = feature_data  # Không cần decode lại
-        return {"success": True, "features": features}
+
+        feature_dict = {}
+        for key, value in feature_data.items():
+            raw_value = value[0] if isinstance(value, list) else value
+            try:
+                feature_dict[key] = float(raw_value)
+            except (ValueError, TypeError):
+                feature_dict[key] = 0.0
+
+        feature_values = {
+            key: feature_dict.get(key, 0.0)
+            for key in FEATURE_COLUMNS
+        }
+
+        return {"success": True, "feature_values": [feature_values]}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-@app.on_event("startup")
-async def startup_event():
-    """Load the model when the API starts."""
-    global loaded_model
-    try:
-        loaded_model, _ = load_model()
-    except Exception as e:
-        print(f"Warning: Could not load model at startup: {e}")
-
 @app.get("/")
 async def root():
-    """Root endpoint."""
     return {"message": "XGBoost Inference API is running"}
 
 @app.post("/predict", response_model=PredictionResponse)
 async def predict(requests: List[PredictionRequest]):
-    """Make predictions using the loaded model."""
+    """Run inference using the XGBoost model."""
     start_time = time.time()
     REQUEST_COUNT.labels(endpoint="/predict", status="started").inc()
     try:
-        # Ensure model is loaded
-        model, model_file = load_model()        
         features = []
         
-        # Get features for each request
         for request in requests:
-            # Get features from Redis
             feature_result = get_features_from_redis(
-                user_id=request.user_id, product_id=request.product_id, user_session=request.user_session
+                user_id=request.user_id, 
+                product_id=request.product_id, 
+                user_session=request.user_session
             )
             print(f"Feature result: {feature_result}")
             
             if not feature_result["success"]:
                 raise HTTPException(
                     status_code=500,
-                    detail=f"Loi la: {feature_result['error']} for user_id={request.user_id}, product_id={request.product_id}, user_session = {request.user_session}: {feature_result['error']}",
+                    detail=f"Error: {feature_result['error']} for user_id={request.user_id}, product_id={request.product_id}, session={request.user_session}",
                 )
-
-            feature_dict = {}
-            for key, value in feature_result["features"].items():
-                raw_value = value[0] if isinstance(value, list) else value
-                try:
-                    feature_dict[key] = float(raw_value)
-                except (ValueError, TypeError):
-                    # Gán giá trị mặc định nếu không phải số
-                    feature_dict[key] = 0.0
-
-            features.append(feature_dict)
+            features.append(feature_result["feature_values"])
         
         REQUEST_COUNT.labels(endpoint="/predict", status="success").inc()
         LATENCY.labels(endpoint="/predict").observe(time.time() - start_time)
+        
+        KUBEFLOW_ENDPOINT = "http://35.247.171.74:8080/"
+        KUBEFLOW_USERNAME = "bigdata@gmail.com"
+        KUBEFLOW_PASSWORD = "12341234"
+        MODEL_NAME = "bigdata-xgb"
+        SERVICE_HOSTNAME = "bigdata-xgb.bigdata.example.com"
+        PREDICT_ENDPOINT = f"{KUBEFLOW_ENDPOINT}/v1/models/{MODEL_NAME}:predict"
+        infer_input = {"instances": features}
 
-        filtered_features = [
-            {key: feature.get(key, 0) for key in FEATURE_COLUMNS}
-            for feature in features
-        ]
-
-        dmatrix = xgb.DMatrix(
-            data=[[feature[col] for col in FEATURE_COLUMNS] for feature in filtered_features],
-            feature_names=FEATURE_COLUMNS
+        _auth_session = get_istio_auth_session(
+            url=KUBEFLOW_ENDPOINT, 
+            username=KUBEFLOW_USERNAME, 
+            password=KUBEFLOW_PASSWORD
         )
-        predictions = model.predict(dmatrix)
+
+        cookies = {"authservice_session": _auth_session["authservice_session"]}
+        jar = Req.cookies.cookiejar_from_dict(cookies)
+
+        response = Req.post(
+            url=PREDICT_ENDPOINT,
+            headers={"Host": SERVICE_HOSTNAME, "Content-Type": "application/json"},
+            cookies=jar,
+            json=infer_input,
+            timeout=200,
+        )
+        
+        status = response.status_code
+        if status != 200:
+            raise HTTPException(status_code=500, detail="Server Error")
+
+        predictions = response.json().get("predictions")
+
         return PredictionResponse(
-            predictions=predictions.tolist(),
+            predictions=predictions,
             success=True,
-            model_file=os.path.basename(model_file)
+            predictor_status=str(status)
         )
         
     except Exception as e:
@@ -239,18 +198,8 @@ async def predict(requests: List[PredictionRequest]):
         return PredictionResponse(
             predictions=[],
             success=False,
-            model_file=os.path.basename(model_file),
             error=str(e)
         )
-
-@app.get("/reload-model")
-async def reload_model():
-    """Force reload the latest model."""
-    try:
-        _, model_file = load_model()
-        return {"success": True, "model_file": os.path.basename(model_file)}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
